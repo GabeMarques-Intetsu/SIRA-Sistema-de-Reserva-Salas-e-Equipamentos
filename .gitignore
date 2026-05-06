@@ -34,3 +34,11 @@ Thumbs.db
 
 # Husky (diretório interno gerado pelo `husky install`)
 .husky/_
+
+# Scripts auxiliares locais (geração de PDFs, automações pontuais, etc.)
+# O projeto SIRA é puramente front-end JS — qualquer .py é ferramenta externa.
+*.py
+__pycache__/
+*.pyc
+.venv/
+venv/
