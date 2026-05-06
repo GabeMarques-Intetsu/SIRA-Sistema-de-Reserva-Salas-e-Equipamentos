@@ -35,10 +35,17 @@ Thumbs.db
 # Husky (diretório interno gerado pelo `husky install`)
 .husky/_
 
-# Scripts auxiliares locais (geração de PDFs, automações pontuais, etc.)
-# O projeto SIRA é puramente front-end JS — qualquer .py é ferramenta externa.
-*.py
-__pycache__/
+# Scripts auxiliares locais e artefatos gerados
+# O SIRA é front-end JS puro. A pasta .py/ guarda utilitários Python
+# (build de PDFs, importadores do board do GitHub) que rodam só local.
+# A pasta membros/ guarda PDFs distribuídos para a equipe.
+.py/
+membros/
+*.pdf
+*.patch
+
+# Python (caso alguém rode os scripts auxiliares)
 *.pyc
+__pycache__/
 .venv/
 venv/
