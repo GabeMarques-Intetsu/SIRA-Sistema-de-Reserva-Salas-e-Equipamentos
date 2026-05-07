@@ -161,7 +161,7 @@ function renderSignup() {
           }
 
           signups.push({
-            id: Date.now(),
+            id: 'su-' + Date.now(),
             name,
             email,
             role,
