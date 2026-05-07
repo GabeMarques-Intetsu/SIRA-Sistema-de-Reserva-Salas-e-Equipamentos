@@ -39,9 +39,10 @@ Thumbs.db
 # O SIRA é front-end JS puro. A pasta .py/ guarda utilitários Python
 # (build de PDFs, importadores do board do GitHub) que rodam só local.
 # A pasta membros/ guarda PDFs distribuídos para a equipe.
-.py/
+.py
 *.pdf
-!docs/membros/*.pdf
+!docs/team-tasks/*.pdf
+!docs/reports/*.pdf
 *.patch
 
 # Python (caso alguém rode os scripts auxiliares)
