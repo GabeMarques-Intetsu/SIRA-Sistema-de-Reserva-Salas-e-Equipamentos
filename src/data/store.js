@@ -225,24 +225,11 @@ export function saveReservation(reservation) {
 // Salva uma aprovação. Se o usuário for admin, propaga a gravação para o usuário proprietário da aprovação.
 // Caso contrário, salva na coleção do usuário logado.
 export function saveApproval(approval) {
-  if (isAdmin() && approval.userEmail) {
-    // Admin está salvando uma aprovação de outro usuário; propaga para a coleção do proprietário.
-    const userApprovals = loadCollection('approvals', approval.userEmail);
-    const existingIndex = userApprovals.findIndex((a) => a.id === approval.id);
+  const approvalOwnerEmail = approval.userEmail || CURRENT_USER?.email;
+  if (!approvalOwnerEmail) return null;
 
-    if (existingIndex >= 0) {
-      // Atualiza aprovação existente.
-      userApprovals[existingIndex] = approval;
-    } else {
-      // Adiciona nova aprovação.
-      userApprovals.push(approval);
-    }
-
-    return saveCollection('approvals', userApprovals, approval.userEmail);
-  }
-
-  // Usuário comum ou admin salvando sua própria aprovação.
-  const userApprovals = loadCollection('approvals');
+  // Se o admin salva a approval de outro usuário, grava no local correto.
+  const userApprovals = loadCollection('approvals', approvalOwnerEmail);
   const existingIndex = userApprovals.findIndex((a) => a.id === approval.id);
 
   if (existingIndex >= 0) {
@@ -251,7 +238,76 @@ export function saveApproval(approval) {
     userApprovals.push(approval);
   }
 
-  return saveCollection('approvals', userApprovals);
+  const savedApproval = saveCollection(
+    'approvals',
+    userApprovals,
+    approvalOwnerEmail,
+  );
+
+  if (isAdmin() && approval.status && approval.userEmail) {
+    updateReservationStatusForApproval(approval);
+    upsertApprovalNotification(approval);
+  }
+
+  return savedApproval;
+}
+
+// Atualiza o status da reserva do solicitante vinculada à aprovação.
+function updateReservationStatusForApproval(approval) {
+  if (!approval?.reservationId || !approval?.userEmail) return null;
+
+  const userReservations = loadCollection('reservations', approval.userEmail);
+  const targetReservation = userReservations.find(
+    (reservation) => reservation.id === approval.reservationId,
+  );
+
+  if (!targetReservation) return null;
+
+  targetReservation.status = approval.status;
+  return saveCollection('reservations', userReservations, approval.userEmail);
+}
+
+// Cria ou atualiza uma notificação do solicitante relacionada à aprovação.
+function upsertApprovalNotification(approval) {
+  if (!approval?.userEmail) return null;
+
+  const notifications = loadCollection('notifications', approval.userEmail);
+  const existingIndex = notifications.findIndex(
+    (notification) =>
+      notification.approvalId === approval.id ||
+      notification.reservationId === approval.reservationId,
+  );
+
+  const message =
+    approval.status === 'approved'
+      ? 'Sua reserva foi aprovada pelo admin.'
+      : 'Sua solicitação de reserva foi recusada pelo admin.';
+
+  const notification = {
+    id: existingIndex >= 0 ? notifications[existingIndex].id : generateId(),
+    approvalId: approval.id,
+    reservationId: approval.reservationId,
+    type: 'approval',
+    status: approval.status,
+    message,
+    createdAt: new Date().toISOString(),
+    read: false,
+  };
+
+  if (existingIndex >= 0) {
+    notifications[existingIndex] = notification;
+  } else {
+    notifications.push(notification);
+  }
+
+  return saveCollection('notifications', notifications, approval.userEmail);
+}
+
+// Resolve uma aprovação como admin e propaga as mudanças para reserva e notificação do solicitante.
+export function resolveApproval(approval) {
+  if (!isAdmin() || !approval?.userEmail || !approval?.id) return null;
+
+  return saveApproval(approval);
 }
 
 // Salva uma sala. Salas são compartilhadas/global, então admin ou usuário salva na própria coleção.
