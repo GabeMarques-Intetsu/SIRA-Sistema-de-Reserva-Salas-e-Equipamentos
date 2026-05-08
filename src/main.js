@@ -31,7 +31,7 @@ const PAGE_RENDERERS = {
   novaReserva: renderNovaReserva,
 };
 
-// ── Telas de Autenticação (Mantidas para o Bootstrap funcionar) ──
+// ── Telas de Autenticação ──
 function renderLogin() {
   const app = document.getElementById('app');
   app.innerHTML = '';
@@ -96,13 +96,10 @@ function bootstrap() {
     const renderer = PAGE_RENDERERS[pageName];
     if (!renderer) return;
 
-    // ── T-07.2: ATUALIZAÇÃO DA URL ──
-    // [Apresentação] Usamos pushState para mudar o endereço no navegador sem dar refresh.
     if (window.location.pathname !== `/${pageName}`) {
       window.history.pushState({}, '', `/${pageName}`);
     }
 
-    // Limpa a página atual e renderiza a nova
     pageContainer.innerHTML = '';
     renderer(pageContainer);
   }
@@ -118,7 +115,19 @@ function bootstrap() {
 
   initModalListeners();
 
-  navigate('calendario');
+  // ── T-07.3: ESCUTADOR DE HISTÓRICO ──
+  // [Apresentação] Reage aos botões de Voltar/Avançar do navegador.
+  window.addEventListener('popstate', () => {
+    let path = window.location.pathname.replace(/^\//, '');
+    if (!path || !PAGE_RENDERERS[path]) path = 'calendario';
+    navigate(path);
+  });
+
+  // [Apresentação] Deep Linking: identifica a página inicial pela URL.
+  let initialPage = window.location.pathname.replace(/^\//, '');
+  if (!PAGE_RENDERERS[initialPage]) initialPage = 'calendario';
+
+  navigate(initialPage);
 }
 
 bootstrap();
