@@ -123,3 +123,88 @@ function parseTimeStr(tStr) {
   const [h, m] = clean.split(":");
   return parseInt(h || 0) * 60 + parseInt(m || 0);
 }
+
+function searchRooms(type, container, formData) {
+  render(container, "");
+  let rooms = getRooms();
+  if (type) {
+    rooms = rooms.filter((r) => r.type === type);
+  }
+
+  if (formData.dateStart && formData.timeStart && formData.timeEnd) {
+    const [y, m, d] = formData.dateStart.split("-");
+    const formattedDate = `${d}/${m}`;
+    const startMins = parseTimeStr(formData.timeStart);
+    const endMins = parseTimeStr(formData.timeEnd);
+
+    if (startMins >= endMins) {
+      toast("O horário final deve ser maior que o inicial.", "error");
+      return;
+    }
+
+    const allRes = getReservations();
+    rooms = rooms.filter((room) => {
+      const roomRes = allRes.filter(
+        (res) =>
+          res.room === room.name &&
+          res.date === formattedDate &&
+          res.status !== "rejected",
+      );
+      const hasOverlap = roomRes.some((res) => {
+        let tStr = res.time;
+        // handle both – (en-dash) and - (hyphen)
+        tStr = tStr.replace("–", "-");
+        const [t1, t2] = tStr.split("-");
+        const resStart = parseTimeStr(t1);
+        const resEnd = parseTimeStr(t2);
+        return startMins < resEnd && endMins > resStart;
+      });
+      return !hasOverlap;
+    });
+  }
+
+  if (rooms.length === 0) {
+    container.appendChild(
+      el("div", {}, "Nenhuma sala encontrada para este tipo."),
+    );
+    return;
+  }
+
+  rooms.forEach((r) => {
+    const card = el(
+      "div",
+      {
+        class: "room-card",
+        style: {
+          padding: "16px",
+          border: "1px solid var(--border-light)",
+          borderRadius: "8px",
+          background: "var(--bg-primary)",
+          cursor: "pointer",
+        },
+        onClick: () => showRoomDetailsModal(r, formData),
+      },
+      el(
+        "div",
+        { style: { fontSize: "15px", fontWeight: "600", marginBottom: "8px" } },
+        r.name,
+      ),
+      el(
+        "div",
+        {
+          style: {
+            fontSize: "12px",
+            color: "var(--text-tertiary)",
+            marginBottom: "12px",
+          },
+        },
+        `Capacidade: ${r.capacity} · Bloco: ${r.block}`,
+      ),
+      btn("Reservar", "btn-primary btn-sm", (e) => {
+        e.stopPropagation();
+        performReservation(r, formData);
+      }),
+    );
+    container.appendChild(card);
+  });
+}
