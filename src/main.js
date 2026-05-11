@@ -1,200 +1,70 @@
+// [Apresentação] Importação dos estilos globais e componentes de UI
 import './style.css';
+import './home.css';
 import './auth.css';
 
-import { el } from './utils/dom.js';
+import { el, render } from './utils/dom.js';
+import { createSidebar } from './components/sidebar.js';
+import { initModalListeners } from './components/modal.js';
+
+// [Apresentação] Importação modular das páginas (View Layer)
+import { renderDashboard } from './modules/dashboard.js';
+import { renderCalendar } from './modules/calendar.js';
+import { renderReservations } from './modules/reservations.js';
+import { renderApprovals } from './modules/approvals.js';
+import { renderRooms } from './modules/rooms.js';
+import { renderUsers } from './modules/users.js';
+import { renderNotifications } from './modules/notifications.js';
+import { renderNovaReserva } from './modules/novaReserva.js';
+
 import { tryRestoreSession, login, CURRENT_USER } from './data/store.js';
 
-// ── Tela de login ────────────────────────────────────────────
+// [Apresentação] Roteador Funcional (Dispatcher): Mapeamos strings para funções de renderização.
+const PAGE_RENDERERS = {
+  dashboard: renderDashboard,
+  calendario: renderCalendar,
+  reservas: renderReservations,
+  aprovacoes: renderApprovals,
+  salas: renderRooms,
+  usuarios: renderUsers,
+  notificacoes: renderNotifications,
+  novaReserva: renderNovaReserva,
+};
+
+// ── Funções de Autenticação ──
 function renderLogin() {
   const app = document.getElementById('app');
   app.innerHTML = '';
-
   const loginBox = el(
     'div',
     {
-      style: {
-        padding: '40px',
-        fontFamily: 'sans-serif',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      },
+      class: 'login-container',
+      style: { padding: '40px', textAlign: 'center' },
     },
     el('h1', {}, 'SIRA - Login'),
-    el('p', { style: { color: '#666', marginBottom: '20px' } }),
-    el('input', {
-      id: 'emailInput',
-      placeholder: 'Email',
-      style: {
-        padding: '10px',
-        width: '300px',
-        marginBottom: '10px',
-        border: '1px solid #ccc',
-        borderRadius: '4px',
-      },
-    }),
+    el('input', { id: 'emailInput', placeholder: 'Email' }),
     el(
       'button',
       {
-        style: {
-          padding: '10px 20px',
-          background: 'var(--brand-primary, #00f)',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-        },
         onClick: () => {
           const email = document.getElementById('emailInput').value;
-          if (login(email)) {
-            location.reload();
-          } else {
-            alert('Usuário não encontrado.');
-          }
+          if (login(email)) location.reload();
+          else alert('Usuário não encontrado.');
         },
       },
       'Entrar',
     ),
-    el(
-      'button',
-      {
-        style: {
-          marginTop: '10px',
-          padding: '10px 20px',
-          background: 'transparent',
-          color: 'var(--brand-primary, #00f)',
-          border: '1px solid var(--brand-primary, #00f)',
-          borderRadius: '4px',
-          cursor: 'pointer',
-        },
-        onClick: () => renderSignup(),
-      },
-      'Cadastrar-se',
-    ),
+    el('button', { onClick: () => renderSignup() }, 'Cadastrar-se'),
   );
-
   app.appendChild(loginBox);
 }
 
-// ── Tela de cadastro ─────────────────────────────────────────
 function renderSignup() {
   const app = document.getElementById('app');
-  app.innerHTML = '';
-
-  const signupBox = el(
-    'div',
-    {
-      style: {
-        padding: '40px',
-        fontFamily: 'sans-serif',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      },
-    },
-    el('h1', {}, 'SIRA - Cadastro'),
-    el('input', {
-      id: 'signupName',
-      placeholder: 'Nome Completo',
-      style: {
-        padding: '10px',
-        width: '300px',
-        marginBottom: '10px',
-        border: '1px solid #ccc',
-        borderRadius: '4px',
-      },
-    }),
-    el('input', {
-      id: 'signupEmail',
-      type: 'email',
-      placeholder: 'Email Institucional',
-      style: {
-        padding: '10px',
-        width: '300px',
-        marginBottom: '10px',
-        border: '1px solid #ccc',
-        borderRadius: '4px',
-      },
-    }),
-    el(
-      'select',
-      {
-        id: 'signupRole',
-        style: {
-          padding: '10px',
-          width: '320px',
-          marginBottom: '20px',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-        },
-      },
-      el('option', { value: 'professor' }, 'Professor'),
-    ),
-    el(
-      'button',
-      {
-        style: {
-          padding: '10px 20px',
-          background: 'var(--brand-primary, #00f)',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          width: '320px',
-          marginBottom: '10px',
-        },
-        onClick: () => {
-          const name = document.getElementById('signupName').value;
-          const email = document.getElementById('signupEmail').value;
-          const role = document.getElementById('signupRole').value;
-
-          if (!name || !email) {
-            alert('Preencha nome e e-mail.');
-            return;
-          }
-
-          let signups = [];
-          try {
-            signups = JSON.parse(localStorage.getItem('sira:signups') || '[]');
-          } catch {
-            /* fallthrough */
-          }
-
-          signups.push({
-            id: 'su-' + Date.now(),
-            name,
-            email,
-            role,
-            approved: false,
-          });
-
-          localStorage.setItem('sira:signups', JSON.stringify(signups));
-          alert('Solicitação de cadastro enviada para aprovação do Admin.');
-          location.reload();
-        },
-      },
-      'Enviar Solicitação',
-    ),
-    el(
-      'button',
-      {
-        style: {
-          padding: '10px 20px',
-          background: 'transparent',
-          color: '#666',
-          border: 'none',
-          cursor: 'pointer',
-        },
-        onClick: () => location.reload(),
-      },
-      'Voltar para Login',
-    ),
-  );
-
-  app.appendChild(signupBox);
+  app.innerHTML =
+    '<h1>Tela de Cadastro</h1><button onclick="location.reload()">Voltar</button>';
 }
 
-// ── Bootstrap ───────────────────────────────────────────────
 function bootstrap() {
   tryRestoreSession();
 
@@ -203,14 +73,78 @@ function bootstrap() {
     return;
   }
 
-  // Placeholder — será substituído pela montagem do shell em USes futuras
   const app = document.getElementById('app');
-  app.innerHTML = `
-    <main style="padding:40px;text-align:center">
-      <h1>SIRA</h1>
-      <p>Logado como <strong>${CURRENT_USER.name}</strong></p>
-    </main>
-  `;
+  app.innerHTML = '';
+
+  // ── Montagem do Shell (Main UI Wrapper) ──
+  const shell = el('div', { class: 'sira-shell' });
+  const sidebarContainer = document.createElement('div');
+  const main = el('div', { class: 'main' });
+
+  // PageContainer: Onde a mágica do SPA acontece
+  const pageContainer = el('div', {
+    class: 'page active',
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      flex: '1',
+      overflow: 'hidden',
+    },
+  });
+
+  main.appendChild(pageContainer);
+
+  // [Apresentação] Função de Navegação Centralizada com Middleware de Segurança
+  function navigate(pageName) {
+    if (!CURRENT_USER) return;
+
+    // ── T-07.4: BLOQUEIO DE ACESSO POR PERFIL (RBAC) ──
+    const isAdmin = CURRENT_USER.role === 'admin';
+    const allowedForUser = ['reservas', 'calendario', 'novaReserva'];
+
+    // Se o usuário não for admin e tentar acessar rota restrita, redireciona para o calendário.
+    if (!isAdmin && !allowedForUser.includes(pageName)) {
+      console.warn(`Acesso negado à rota: ${pageName}. Redirecionando...`);
+      pageName = 'calendario';
+    }
+
+    const renderer = PAGE_RENDERERS[pageName];
+    if (!renderer) return;
+
+    // ── T-07.2: ATUALIZAÇÃO DA URL (History API) ──
+    if (window.location.pathname !== `/${pageName}`) {
+      window.history.pushState({}, '', `/${pageName}`);
+    }
+
+    // Renderização do novo conteúdo
+    pageContainer.innerHTML = '';
+    renderer(pageContainer);
+  }
+
+  // Inicializa o Sidebar injetando a função de navegação
+  createSidebar(sidebarContainer, CURRENT_USER, navigate, () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('sira-theme', isDark ? 'dark' : 'light');
+  });
+
+  shell.appendChild(sidebarContainer);
+  shell.appendChild(main);
+  app.appendChild(shell);
+
+  initModalListeners();
+
+  // ── T-07.3: ESCUTADOR DE HISTÓRICO (Popstate) ──
+  window.addEventListener('popstate', () => {
+    let path = window.location.pathname.replace(/^\//, '');
+    if (!path || !PAGE_RENDERERS[path]) path = 'calendario';
+    navigate(path);
+  });
+
+  // Deep Linking: Render inicial baseado na URL atual
+  let initialPage = window.location.pathname.replace(/^\//, '');
+  if (!PAGE_RENDERERS[initialPage]) initialPage = 'calendario';
+
+  navigate(initialPage);
 }
 
 bootstrap();
