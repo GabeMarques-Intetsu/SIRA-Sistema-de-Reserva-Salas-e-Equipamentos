@@ -24,6 +24,49 @@ export function renderNovaReserva(page) {
   const timeStart = el("input", { type: "time", class: "form-input" });
   const timeEnd = el("input", { type: "time", class: "form-input" });
 
+  const recurSim = el("input", {
+    type: "radio",
+    name: "recurrence",
+    value: "sim",
+  });
+  const recurNao = el("input", {
+    type: "radio",
+    name: "recurrence",
+    value: "nao",
+    checked: true,
+  });
+
+  const weekDaysContainer = el("div", {
+    style: { display: "none", gap: "8px", marginTop: "10px" },
+  });
+  const days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+  const dayButtons = days.map((d) => {
+    const b = el(
+      "button",
+      { class: "btn btn-sm", style: { minWidth: "40px" } },
+      d,
+    );
+    b.dataset.selected = "false";
+    b.addEventListener("click", (e) => {
+      e.preventDefault();
+      const isSel = b.dataset.selected === "true";
+      b.dataset.selected = isSel ? "false" : "true";
+      b.style.backgroundColor = isSel ? "" : "var(--accent)";
+      b.style.color = isSel ? "" : "#fff";
+    });
+    return b;
+  });
+  dayButtons.forEach((b) => weekDaysContainer.appendChild(b));
+
+  recurSim.addEventListener(
+    "change",
+    () => (weekDaysContainer.style.display = "flex"),
+  );
+  recurNao.addEventListener(
+    "change",
+    () => (weekDaysContainer.style.display = "none"),
+  );
+
   const roomTypeSelect = el(
     "select",
     { class: "form-input" },
@@ -208,3 +251,4 @@ function searchRooms(type, container, formData) {
     container.appendChild(card);
   });
 }
+
