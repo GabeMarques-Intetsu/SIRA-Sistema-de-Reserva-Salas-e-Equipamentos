@@ -32,9 +32,7 @@ export function renderReservations(page) {
 
   const searchBox = el("div", { class: "search-box" }, searchIcon(), searchInput);
 
-  const topbar = el(
-    "div",
-    { class: "topbar" },
+  const topbar = el("div", { class: "topbar" },
     el("span", { class: "topbar-title" }, "Minhas Reservas"),
     searchBox,
   );
@@ -59,9 +57,7 @@ export function renderReservations(page) {
 
   const filterRow = el("div", { class: "filter-row" }, ...chips);
 
-  const table = el(
-    "div",
-    { class: "table-wrap" },
+  const table = el("div", { class: "table-wrap" },
     el("table", {},
       el("thead", {},
         el("tr", {},
@@ -105,6 +101,9 @@ function buildRow(r, tbody) {
 
   if (r.status === "pending") {
     actionsCell.appendChild(btn("Editar", "btn-sm", () => openEditModal(r, tbody)));
+    actionsCell.appendChild(btn("Cancelar", "btn-sm btn-danger", () => deleteReservation(r.id, tbody)));
+  } else if (r.status === "approved") {
+    actionsCell.appendChild(btn("Cancelar", "btn-sm btn-danger", () => deleteReservation(r.id, tbody)));
   }
 
   return tableRow([
@@ -142,9 +141,7 @@ function openViewModal(r) {
 
 function openEditModal(r, tbody) {
   const purposeInput = el("textarea", { class: "form-input", rows: "3", style: "resize:none" }, r.purpose);
-  const timeSelect = el(
-    "select",
-    { class: "form-input" },
+  const timeSelect = el("select", { class: "form-input" },
     ...["07:00–08:00", "08:00–10:00", "10:00–12:00", "14:00–16:00", "16:00–18:00"].map((t) => {
       const o = document.createElement("option");
       o.textContent = t;
@@ -184,6 +181,15 @@ function openEditModal(r, tbody) {
   });
 
   openModal("modal-edit");
+}
+
+function deleteReservation(id, tbody) {
+  confirm("Deseja cancelar esta reserva?", () => {
+    const updated = getReservations().filter((r) => r.id !== id);
+    saveReservations(updated);
+    refreshTable(tbody);
+    toast("Reserva cancelada.", "success");
+  });
 }
 
 function infoRow(label, value) {
