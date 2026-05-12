@@ -8,6 +8,19 @@ let searchQuery = "";
 let activeFilter = "all";
 
 export function renderReservations(page) {
+  let updated = false;
+  const reservations = getReservations().map((r) => {
+    if (r.requester === "Diego Pessoa" && !r.read) {
+      updated = true;
+      return { ...r, read: true };
+    }
+    return r;
+  });
+  if (updated) {
+    saveReservations(reservations);
+    if (window.updateSidebarBadges) window.updateSidebarBadges();
+  }
+
   const tbody = document.createElement("tbody");
   refreshTable(tbody);
 
