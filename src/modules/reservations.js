@@ -133,7 +133,7 @@ function buildRow(r, tbody) {
     { pending: "Pendente", approved: "Aprovada", rejected: "Recusada" }[r.status] ?? r.status;
 
   const actionsCell = el("div", { class: "actions-row" });
-  actionsCell.appendChild(btn("Ver", "btn-sm", () => {}));
+  actionsCell.appendChild(btn("Ver", "btn-sm", () => openViewModal(r)));
 
   return tableRow([
     r.room,
@@ -143,6 +143,40 @@ function buildRow(r, tbody) {
     badge(statusLabel, statusBadge(r.status)),
     actionsCell,
   ]);
+}
+
+function openViewModal(r) {
+  const statusLabel =
+    { pending: "Pendente", approved: "Aprovada", rejected: "Recusada" }[r.status] ?? r.status;
+
+  const body = el(
+    "div",
+    {},
+    infoRow("Sala", r.room),
+    infoRow("Data", r.date),
+    infoRow("Horário", r.time),
+    infoRow("Finalidade", r.purpose),
+    infoRow("Solicitante", r.requester),
+    infoRow("Status", statusLabel),
+  );
+
+  createModal({
+    id: "modal-view",
+    title: "Detalhes da Reserva",
+    body,
+    actions: [{ label: "Fechar", onClick: () => closeModal("modal-view") }],
+  });
+
+  openModal("modal-view");
+}
+
+function infoRow(label, value) {
+  return el(
+    "div",
+    { style: { marginBottom: "10px" } },
+    el("span", { style: { fontSize: "11px", color: "var(--text-tertiary)", display: "block" } }, label),
+    el("span", { style: { fontSize: "13px" } }, value),
+  );
 }
 
 function searchIcon() {
