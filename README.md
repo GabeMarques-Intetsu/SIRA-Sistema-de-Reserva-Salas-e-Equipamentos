@@ -153,9 +153,7 @@ O deploy é **manual via GitHub Releases**: ao publicar uma release, o
 workflow `deploy.yml` roda o build e publica a pasta `dist/` no GitHub
 Pages.
 
-- URL pública: `https://gabemarques-intetsu.github.io/SIRA-Sistema-de-Reserva-Salas-e-Equipamentos/`
-  (o slug de `base` preserva o nome antigo do repositório porque o GitHub Pages
-  é servido a partir desse path; o repositório em si foi renomeado para `SIRA`).
+- URL pública: <https://gabemarques-intetsu.github.io/SIRA/>
 - O `vite.config.js` aplica o `base` apenas quando `GITHUB_PAGES=true`
   (variável injetada pelo step _Build_ do `deploy.yml`). Em
   desenvolvimento e `npm run preview` locais, a `base` é `/` — sem
@@ -291,5 +289,3 @@ em [`docs/team-tasks/sprint-1/`](docs/team-tasks/sprint-1/).
 
 Projeto acadêmico desenvolvido no IFPB para as disciplinas de
 **Programação para Web 2** e **Engenharia de Requisitos de Software**.
-Código-fonte mantido neste repositório sem licença pública declarada —
-todos os direitos reservados aos autores acima.
