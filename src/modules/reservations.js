@@ -35,6 +35,8 @@ export function renderReservations(page) {
   const topbar = el("div", { class: "topbar" },
     el("span", { class: "topbar-title" }, "Minhas Reservas"),
     searchBox,
+    btn("Exportar", "", () => exportCSV()),
+    btn("+ Nova Reserva", "btn-primary", () => { window.navigatePage("novaReserva"); }),
   );
 
   const FILTERS = [
@@ -194,6 +196,22 @@ function deleteReservation(id, tbody) {
   });
 }
 
+function exportCSV() {
+  const data = getReservations();
+  const rows = [
+    ["Sala", "Data", "Horário", "Finalidade", "Solicitante", "Status"],
+    ...data.map((r) => [r.room, r.date, r.time, r.purpose, r.requester, r.status]),
+  ];
+  const csv = rows.map((r) => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "reservas.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function infoRow(label, value) {
   return el("div", { style: { marginBottom: "10px" } },
     el("span", { style: { fontSize: "11px", color: "var(--text-tertiary)", display: "block" } }, label),
@@ -206,6 +224,11 @@ function formField(label, input) {
     el("label", { class: "form-label" }, label),
     input,
   );
+}
+
+function formatDate(iso) {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}`;
 }
 
 function searchIcon() {
