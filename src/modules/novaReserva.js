@@ -1,4 +1,4 @@
-import { el, render, btn, toast } from '../utils/dom.js';
+import { el, render, btn, toast, dateField } from '../utils/dom.js';
 import { createModal, openModal, closeModal } from '../components/modal.js';
 import {
   getRooms,
@@ -25,8 +25,8 @@ export function renderNovaReserva(page) {
     el('span', { class: 'topbar-title' }, 'Nova Reserva'),
   );
 
-  const dateStart = makeDateInput();
-  const dateEnd = makeDateInput();
+  const dateStart = dateField();
+  const dateEnd = dateField();
 
   const timeStart = el('input', { type: 'time', class: 'form-input' });
   const timeEnd = el('input', { type: 'time', class: 'form-input' });
@@ -242,34 +242,6 @@ function parseDateLocal(str) {
   if (!d || !m || !y) return null;
   const year = y < 100 ? 2000 + y : y;
   return new Date(year, m - 1, d);
-}
-
-/**
- * Cria um `<input type="text">` com máscara automática para datas no
- * formato dd/mm/aaaa. Conforme o usuário digita números, insere as barras
- * (`/`) automaticamente e limita a 10 caracteres.
- * @returns {HTMLInputElement}
- */
-function makeDateInput() {
-  const input = el('input', {
-    type: 'text',
-    class: 'form-input',
-    placeholder: 'dd/mm/aaaa',
-    inputmode: 'numeric',
-    autocomplete: 'off',
-    maxlength: '10',
-  });
-  input.addEventListener('input', (e) => {
-    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
-    let out = digits;
-    if (digits.length > 4) {
-      out = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-    } else if (digits.length > 2) {
-      out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    }
-    e.target.value = out;
-  });
-  return input;
 }
 
 /**
