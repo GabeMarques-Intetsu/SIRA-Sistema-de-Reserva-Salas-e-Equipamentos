@@ -15,8 +15,13 @@ import {
 } from '../data/store.js';
 import { openModal, closeModal, createModal } from '../components/modal.js';
 
-// Identifica reservas pertencentes ao usuário logado. Compara por e-mail
-// (identidade estável) e cai no nome para suportar registros legados.
+/**
+ * Identifica se uma reserva pertence ao usuário logado.
+ * Compara por `requesterEmail` (identidade estável) e cai para o `requester`
+ * (nome) nos registros legados que não tinham e-mail.
+ * @param {{requesterEmail?:string, requester?:string}} r
+ * @returns {boolean}
+ */
 function isMine(r) {
   if (!CURRENT_USER) return false;
   if (r.requesterEmail) return r.requesterEmail === CURRENT_USER.email;
@@ -39,6 +44,13 @@ const HOURS = [
   '18:00',
 ];
 
+/**
+ * Calcula a lista de 7 datas (Seg → Dom) da semana atual deslocada por
+ * `offset` (em semanas). `offset = 0` retorna a semana corrente, `-1` a
+ * anterior, `+1` a próxima.
+ * @param {number} [offset=0]
+ * @returns {Date[]}
+ */
 function getWeekDates(offset = 0) {
   const now = new Date();
   const day = now.getDay();
@@ -51,6 +63,15 @@ function getWeekDates(offset = 0) {
   });
 }
 
+/**
+ * Converte uma lista de reservas em eventos posicionados no grid (dia × hora)
+ * da semana exibida. Reservas que cobrem múltiplas horas geram um evento por
+ * bloco contíguo. Aceita datas no formato dd/mm/aaaa (com matching de ano)
+ * e dd/mm legado.
+ * @param {Array<object>} reservations
+ * @param {Date[]} weekDates - resultado de `getWeekDates`
+ * @returns {Array<{day:number, hour:number, label:string, sub:string, color:string, id:string}>}
+ */
 function reservationsToEvents(reservations, weekDates) {
   const COLOR_MAP = { approved: 'green', pending: 'amber', rejected: 'pink' };
   return reservations.flatMap((r) => {
@@ -87,10 +108,22 @@ function reservationsToEvents(reservations, weekDates) {
 
 let weekOffset = 0;
 
+/**
+ * Renderiza o módulo Calendário (página inicial pós-login) no container
+ * fornecido pelo roteador. Apenas delega para `rebuildCalendar`.
+ * @param {HTMLElement} page
+ */
 export function renderCalendar(page) {
   rebuildCalendar(page);
 }
 
+/**
+ * Constrói o fragmento DOM da página do calendário (topbar, navegação de
+ * semana, sidebar "Suas reservas" e o grid semanal de eventos). Não toca o
+ * DOM diretamente — retorna o fragmento para `rebuildCalendar` montar.
+ * @param {HTMLElement} page - usado pelos handlers para forçar rerender
+ * @returns {DocumentFragment}
+ */
 function buildFragment(page) {
   const weekDates = getWeekDates(weekOffset);
   const reservations = getReservations();
@@ -262,12 +295,25 @@ function buildFragment(page) {
   return frag;
 }
 
+/**
+ * Limpa o container e remonta a árvore do calendário a partir do estado
+ * atual de `weekOffset` e das reservas no store.
+ * @param {HTMLElement} page
+ */
 function rebuildCalendar(page) {
   render(page, buildFragment(page));
 }
 
 // ── Modal: Reserva rápida ─────────────────────────────────────
 
+/**
+ * Abre um modal de reserva rápida (atalho da home, atualmente não exposto
+ * na UI). Quando `recorrente` é true, adiciona um seletor de periodicidade
+ * (Semanal/Quinzenal/Mensal). Ao confirmar, valida campos, grava no store
+ * via `saveReservations` e rerendeniza o calendário.
+ * @param {boolean} recorrente
+ * @param {HTMLElement} page
+ */
 function openQuickModal(recorrente, page) {
   const rooms = getRooms();
 
@@ -370,6 +416,12 @@ function openQuickModal(recorrente, page) {
 
 // ── Modal: Cancelar ───────────────────────────────────────────
 
+/**
+ * Abre um modal listando as reservas ativas (não rejeitadas) do usuário
+ * logado para que ele escolha uma para cancelar. Após confirmar, remove a
+ * reserva do store e rerendeniza o calendário.
+ * @param {HTMLElement} page
+ */
 function openCancelModal(page) {
   const mine = getReservations().filter(
     (r) => isMine(r) && r.status !== 'rejected',
@@ -416,6 +468,12 @@ function openCancelModal(page) {
 
 // ── Helpers ───────────────────────────────────────────────────
 
+/**
+ * Encapsula um par `<label>` + input no padrão visual usado pelos modais.
+ * @param {string} label
+ * @param {HTMLElement} input
+ * @returns {HTMLElement}
+ */
 function formField(label, input) {
   return el(
     'div',
@@ -425,6 +483,13 @@ function formField(label, input) {
   );
 }
 
+/**
+ * Versão local de toast (replica `utils/dom.toast`) usada pelos modais do
+ * calendário. Cria o container `.toast-container` no body se necessário e
+ * remove a notificação após 3 segundos.
+ * @param {string} msg
+ * @param {'success'|'error'|''} type
+ */
 function toastMsg(msg, type) {
   let c = document.querySelector('.toast-container');
   if (!c) {

@@ -48,6 +48,12 @@ export function renderApprovals(page) {
   render(page, topbar, el('div', { class: 'content' }, list));
 }
 
+/**
+ * Re-renderiza a lista de cards de aprovação dentro do container recebido,
+ * a partir do estado atual do store. Mostra estado vazio quando não há
+ * aprovações pendentes.
+ * @param {HTMLElement} list
+ */
 function refreshList(list) {
   const approvals = getApprovals();
   render(
@@ -64,6 +70,13 @@ function refreshList(list) {
   );
 }
 
+/**
+ * Constrói o card visual de uma aprovação (sala, finalidade, solicitante,
+ * data/horário) com botões "Aprovar" e "Recusar" que disparam `resolveDecision`.
+ * @param {object} a - objeto de aprovação do store
+ * @param {HTMLElement} list - container para rerender após decisão
+ * @returns {HTMLElement}
+ */
 function buildApprovalCard(a, list) {
   return el(
     'div',
@@ -103,9 +116,16 @@ function buildApprovalCard(a, list) {
   );
 }
 
-// Resolve a decisão propagando para reserva + notificação do solicitante.
-// Quando o objeto traz e-mail do dono, usa resolveApproval do store (que
-// faz o cross-user). Caso contrário, fallback com filter/map imutáveis.
+/**
+ * Aplica a decisão (aprovar/recusar) de uma aprovação. Quando o objeto traz
+ * o e-mail do solicitante, usa `resolveApproval` do store — que propaga a
+ * mudança para a reserva e a notificação na coleção do dono (cross-user).
+ * Caso contrário (seeds legados sem e-mail), faz fallback com filter/map
+ * imutáveis sobre as coleções locais.
+ * @param {object} a - aprovação alvo
+ * @param {'approved'|'rejected'} decision
+ * @param {HTMLElement} list - container para rerender
+ */
 function resolveDecision(a, decision, list) {
   const isAdmin = CURRENT_USER?.role === 'admin';
 

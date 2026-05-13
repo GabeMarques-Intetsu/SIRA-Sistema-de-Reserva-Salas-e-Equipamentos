@@ -21,12 +21,26 @@ import { openModal, closeModal, createModal } from '../components/modal.js';
 let searchQuery = '';
 let activeFilter = 'all';
 
+/**
+ * Identifica se uma reserva pertence ao usuário logado.
+ * Compara por `requesterEmail` (identidade estável); cai para `requester`
+ * (nome) em registros legados que não tinham e-mail.
+ * @param {{requesterEmail?:string, requester?:string}} r
+ * @returns {boolean}
+ */
 function isMine(r) {
   if (!CURRENT_USER) return false;
   if (r.requesterEmail) return r.requesterEmail === CURRENT_USER.email;
   return r.requester === CURRENT_USER.name;
 }
 
+/**
+ * Renderiza a tela "Minhas Reservas" no container do roteador.
+ * Marca como lidas todas as reservas próprias ao entrar (limpa o badge),
+ * monta topbar com busca/export/Nova Reserva, chips de filtro por status e
+ * uma tabela com ações contextuais (Ver / Editar / Cancelar / Recorrer).
+ * @param {HTMLElement} page
+ */
 export function renderReservations(page) {
   let updated = false;
   const reservations = getReservations().map((r) => {
@@ -125,6 +139,12 @@ export function renderReservations(page) {
   render(page, topbar, content);
 }
 
+/**
+ * Re-renderiza o corpo da tabela de reservas aplicando o filtro de texto
+ * (campos sala/finalidade/solicitante) e o chip de status ativo. Mostra
+ * uma linha de estado vazio quando o resultado é zero.
+ * @param {HTMLTableSectionElement} tbody
+ */
 function refreshTable(tbody) {
   const all = getReservations();
   const filtered = filterByStatus(
@@ -157,6 +177,14 @@ function refreshTable(tbody) {
   );
 }
 
+/**
+ * Constrói uma linha `<tr>` para a tabela de reservas. As ações exibidas
+ * dependem do status: pendentes têm "Editar" e "Cancelar", aprovadas têm
+ * "Cancelar", recusadas têm "Recorrer" (placeholder).
+ * @param {object} r - reserva
+ * @param {HTMLTableSectionElement} tbody - usado para rerender após ações
+ * @returns {HTMLTableRowElement}
+ */
 function buildRow(r, tbody) {
   const statusLabel =
     { pending: 'Pendente', approved: 'Aprovada', rejected: 'Recusada' }[
@@ -199,6 +227,10 @@ function buildRow(r, tbody) {
   ]);
 }
 
+/**
+ * Abre um modal somente-leitura com os detalhes de uma reserva.
+ * @param {object} r
+ */
 function openViewModal(r) {
   const statusLabel =
     { pending: 'Pendente', approved: 'Aprovada', rejected: 'Recusada' }[
@@ -226,6 +258,13 @@ function openViewModal(r) {
   openModal('modal-view');
 }
 
+/**
+ * Abre o modal de edição de uma reserva pendente. Permite alterar horário
+ * (de um conjunto pré-definido) e finalidade. Salva via `saveReservations`
+ * e rerendeniza a tabela.
+ * @param {object} r
+ * @param {HTMLTableSectionElement} tbody
+ */
 function openEditModal(r, tbody) {
   const purposeInput = el(
     'textarea',
@@ -298,6 +337,12 @@ function openEditModal(r, tbody) {
   openModal('modal-edit');
 }
 
+/**
+ * Cancela (remove) uma reserva após confirmação. Usa `filter` imutável e
+ * persiste com `saveReservations`.
+ * @param {string} id
+ * @param {HTMLTableSectionElement} tbody
+ */
 function deleteReservation(id, tbody) {
   confirm('Deseja cancelar esta reserva?', () => {
     const updated = getReservations().filter((r) => r.id !== id);
@@ -307,6 +352,10 @@ function deleteReservation(id, tbody) {
   });
 }
 
+/**
+ * Exporta as reservas atuais como arquivo CSV (sala, data, horário,
+ * finalidade, solicitante, status) e dispara o download.
+ */
 function exportCSV() {
   const data = getReservations();
   const rows = [
@@ -330,6 +379,12 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Linha rótulo+valor usada no modal de visualização da reserva.
+ * @param {string} label
+ * @param {string} value
+ * @returns {HTMLElement}
+ */
 function infoRow(label, value) {
   return el(
     'div',
@@ -349,6 +404,12 @@ function infoRow(label, value) {
   );
 }
 
+/**
+ * Encapsula um par `<label>` + input com o estilo padrão de formulário.
+ * @param {string} label
+ * @param {HTMLElement} input
+ * @returns {HTMLElement}
+ */
 function formField(label, input) {
   return el(
     'div',
@@ -358,11 +419,21 @@ function formField(label, input) {
   );
 }
 
+/**
+ * Converte "YYYY-MM-DD" (input HTML) para "dd/mm/aaaa" (formato brasileiro
+ * usado para armazenamento e exibição).
+ * @param {string} iso
+ * @returns {string}
+ */
 function formatDate(iso) {
   const [y, m, d] = iso.split('-');
   return `${d}/${m}/${y}`;
 }
 
+/**
+ * Cria o ícone SVG da lupa usado dentro do `.search-box`.
+ * @returns {SVGElement}
+ */
 function searchIcon() {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '13');

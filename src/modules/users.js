@@ -10,6 +10,12 @@ import { openModal, closeModal, createModal } from '../components/modal.js';
 
 let searchQuery = '';
 
+/**
+ * Renderiza o CRUD de Usuários (admin) no container fornecido pelo
+ * roteador. Topbar com busca, botão de solicitações pendentes e adicionar,
+ * tabela com avatar/nome/e-mail/perfil e ações Editar/Remover.
+ * @param {HTMLElement} page
+ */
 export function renderUsers(page) {
   const searchInput = el('input', {
     type: 'text',
@@ -60,6 +66,12 @@ export function renderUsers(page) {
   render(page, topbar, content);
 }
 
+/**
+ * Re-renderiza a tabela de usuários aplicando o filtro de texto sobre os
+ * campos `name`, `email` e `role`. Mostra estado vazio quando nada é
+ * encontrado.
+ * @param {HTMLTableSectionElement} tbody
+ */
 function refreshTable(tbody) {
   const all = getUsers();
   const filtered = filterByText(all, searchQuery, ['name', 'email', 'role']);
@@ -89,6 +101,13 @@ function refreshTable(tbody) {
   );
 }
 
+/**
+ * Constrói uma linha `<tr>` para a tabela de usuários com avatar (iniciais),
+ * nome, e-mail, rótulo legível do perfil e ações Editar/Remover.
+ * @param {object} u - usuário
+ * @param {HTMLTableSectionElement} tbody
+ * @returns {HTMLTableRowElement}
+ */
 function buildRow(u, tbody) {
   const nameCell = el(
     'div',
@@ -114,6 +133,14 @@ function buildRow(u, tbody) {
   return tableRow([nameCell, u.email, roleLabel(u.role), actionsCell]);
 }
 
+/**
+ * Abre o modal de criação ou edição de usuário. Quando `user` é `null`,
+ * funciona como cadastro; caso contrário, pré-popula e altera título/botão.
+ * Valida nome e e-mail, persiste com `saveUsers` (cria via `[...all, novo]`
+ * ou atualiza via `map` imutável).
+ * @param {object|null} user
+ * @param {HTMLTableSectionElement} tbody
+ */
 function openUserModal(user, tbody) {
   const isEdit = !!user;
 
@@ -191,6 +218,13 @@ function openUserModal(user, tbody) {
   openModal('modal-usuario');
 }
 
+/**
+ * Abre um modal listando as solicitações de cadastro pendentes
+ * (armazenadas em `localStorage["sira:signups"]` pela tela de signup).
+ * Para cada solicitação, oferece "Aprovar" (move para a lista de usuários
+ * via `saveUsers`) ou "Recusar" (remove da lista de signups).
+ * @param {HTMLTableSectionElement} tbody
+ */
 function renderSignupsModal(tbody) {
   let signups = [];
   try {
@@ -267,6 +301,12 @@ function renderSignupsModal(tbody) {
   openModal('modal-signups');
 }
 
+/**
+ * Remove um usuário após confirmação. Aplica `filter` imutável e persiste
+ * com `saveUsers`.
+ * @param {string} id
+ * @param {HTMLTableSectionElement} tbody
+ */
 function deleteUser(id, tbody) {
   confirm('Deseja remover este usuário?', () => {
     saveUsers(getUsers().filter((u) => u.id !== id));
@@ -275,6 +315,12 @@ function deleteUser(id, tbody) {
   });
 }
 
+/**
+ * Encapsula um par `<label>` + input com o estilo padrão de formulário.
+ * @param {string} label
+ * @param {HTMLElement} input
+ * @returns {HTMLElement}
+ */
 function formField(label, input) {
   return el(
     'div',
@@ -284,6 +330,10 @@ function formField(label, input) {
   );
 }
 
+/**
+ * Cria o ícone SVG da lupa usado dentro do `.search-box`.
+ * @returns {SVGElement}
+ */
 function searchIcon() {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '13');

@@ -11,6 +11,13 @@ import {
   CURRENT_USER,
 } from '../data/store.js';
 
+/**
+ * Renderiza o formulário de Nova Reserva no container fornecido pelo
+ * roteador. Constrói os inputs (datas, horários, recorrência, tipo,
+ * finalidade), os botões de dias da semana (visíveis apenas em modo
+ * recorrente) e dispara `searchRooms` ao clicar em "Buscar Salas".
+ * @param {HTMLElement} page
+ */
 export function renderNovaReserva(page) {
   const topbar = el(
     'div',
@@ -163,6 +170,13 @@ export function renderNovaReserva(page) {
   render(page, topbar, content);
 }
 
+/**
+ * Encapsula um par `<label>` + input com o estilo do formulário de Nova
+ * Reserva (label menor, espaçamento padrão).
+ * @param {string} label
+ * @param {HTMLElement} input
+ * @returns {HTMLElement}
+ */
 function formField(label, input) {
   return el(
     'div',
@@ -185,6 +199,12 @@ function formField(label, input) {
   );
 }
 
+/**
+ * Converte uma string de horário (`"14:00"`, `"14h"`, `"14h30"`) em
+ * minutos desde meia-noite. Tolerante a variações de formato.
+ * @param {string} tStr
+ * @returns {number} minutos totais
+ */
 function parseTimeStr(tStr) {
   let clean = tStr.trim().toLowerCase();
   if (clean.includes('h')) {
@@ -195,13 +215,24 @@ function parseTimeStr(tStr) {
   return parseInt(h || 0) * 60 + parseInt(m || 0);
 }
 
-// Converte um dia JS (0=Dom..6=Sáb) para o índice usado pelos botões da UI
-// (0=Seg, 1=Ter, 2=Qua, 3=Qui, 4=Sex, 5=Sáb, 6=Dom).
+/**
+ * Converte o índice de dia da semana do JavaScript (0=Dom .. 6=Sáb) para o
+ * índice usado pelos botões da UI de recorrência
+ * (0=Seg, 1=Ter, 2=Qua, 3=Qui, 4=Sex, 5=Sáb, 6=Dom).
+ * @param {number} jsDay
+ * @returns {number}
+ */
 function jsDayToFormIdx(jsDay) {
   return jsDay === 0 ? 6 : jsDay - 1;
 }
 
-// Parse "YYYY-MM-DD" como data local (evita problemas de fuso do new Date(iso)).
+/**
+ * Faz parse de uma string `"YYYY-MM-DD"` (formato de `<input type="date">`)
+ * para uma `Date` no fuso local — evita o bug clássico em que
+ * `new Date("2026-05-13")` é interpretado como UTC e exibe o dia anterior.
+ * @param {string} iso
+ * @returns {Date|null}
+ */
 function parseDateLocal(iso) {
   if (!iso) return null;
   const [y, m, d] = iso.split('-').map(Number);
@@ -209,7 +240,11 @@ function parseDateLocal(iso) {
   return new Date(y, m - 1, d);
 }
 
-// Formata uma Date no padrão brasileiro dd/mm/aaaa.
+/**
+ * Formata uma `Date` no padrão brasileiro dd/mm/aaaa.
+ * @param {Date} date
+ * @returns {string}
+ */
 function formatDateDdMm(date) {
   const dd = String(date.getDate()).padStart(2, '0');
   const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -217,9 +252,15 @@ function formatDateDdMm(date) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-// Gera a lista de datas "dd/mm/aaaa" cobertas por uma reserva.
-// Não-recorrente: apenas dateStart. Recorrente: todas as datas entre
-// dateStart e dateEnd cujo dia da semana esteja em selectedDays.
+/**
+ * Gera a lista de datas no formato "dd/mm/aaaa" que uma reserva irá ocupar.
+ * - Não-recorrente: apenas `dateStart`.
+ * - Recorrente: todas as datas entre `dateStart` e `dateEnd` cujo dia da
+ *   semana esteja em `selectedDays`. Retorna `[]` se faltar dia selecionado
+ *   ou se o range for inválido.
+ * @param {{dateStart:string, dateEnd?:string, isRecurring?:boolean, selectedDays?:number[]}} formData
+ * @returns {string[]}
+ */
 function expandReservationDates(formData) {
   const start = parseDateLocal(formData.dateStart);
   if (!start) return [];
@@ -243,6 +284,15 @@ function expandReservationDates(formData) {
   return out;
 }
 
+/**
+ * Busca salas disponíveis para os critérios informados pelo usuário e
+ * renderiza cards no `container`. Filtra por tipo de sala e remove as que
+ * tenham conflito de horário em qualquer data do range (para reservas
+ * recorrentes). Mostra estado vazio quando nada é encontrado.
+ * @param {string} type - tipo de espaço ('' = todos)
+ * @param {HTMLElement} container - destino dos cards
+ * @param {object} formData - {dateStart, dateEnd, timeStart, timeEnd, purpose, isRecurring, selectedDays}
+ */
 function searchRooms(type, container, formData) {
   render(container, '');
   let rooms = getRooms();
@@ -337,6 +387,13 @@ function searchRooms(type, container, formData) {
   });
 }
 
+/**
+ * Abre o modal de detalhes de uma sala selecionada nos resultados de busca.
+ * Mostra capacidade, localização, recursos e um badge indicando se a sala
+ * está disponível no horário solicitado.
+ * @param {object} room
+ * @param {object} formData
+ */
 function showRoomDetailsModal(room, formData) {
   const hasTime = formData.dateStart && formData.timeStart && formData.timeEnd;
   const statusBadgeInfo = hasTime
@@ -424,6 +481,17 @@ function showRoomDetailsModal(room, formData) {
   openModal('modal-room-details');
 }
 
+/**
+ * Efetiva a(s) reserva(s) selecionada(s).
+ * - Valida campos obrigatórios e horário inicial < final.
+ * - Expande as datas (1 para pontual, N para recorrente).
+ * - Re-checa overlap em todas as datas antes de salvar.
+ * - Cria 1 reserva (pendente) + 1 aprovação por ocorrência. Em modo
+ *   recorrente, todas compartilham o mesmo `recurrenceGroupId`.
+ * - Exibe toast e navega para "Minhas Reservas" via `window.navigatePage`.
+ * @param {object} room
+ * @param {object} formData
+ */
 function performReservation(room, formData) {
   if (
     !formData.dateStart ||

@@ -8,8 +8,12 @@ import { computeStats } from '../utils/fp.js';
 import { el, render } from '../utils/dom.js';
 
 /**
- * Renderiza o dashboard do administrador no container recebido.
- * @param {HTMLElement} page  container alvo (vem do roteador em main.js)
+ * Renderiza o Dashboard do administrador no container fornecido.
+ * Monta 4 cards de KPIs (total de salas, salas disponíveis, reservas
+ * pendentes, taxa de ocupação), a lista das últimas reservas aprovadas e
+ * um placeholder do gráfico de ocupação. Todos os valores são derivados de
+ * `getRooms`, `getReservations` e `computeStats`.
+ * @param {HTMLElement} page - container alvo (vem do roteador em main.js)
  */
 export function renderDashboard(page) {
   // Passo 2: Resgatar os dados

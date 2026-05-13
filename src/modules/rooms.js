@@ -17,7 +17,10 @@ let searchQuery = '';
 let activeFilter = 'all';
 
 /**
- * Renderiza a página de salas.
+ * Renderiza o CRUD da página "Salas e Espaços" (admin) no container.
+ * Monta topbar com busca, exportar e botão de cadastro; chips de filtro
+ * por status (Todas/Disponíveis/Ocupadas/Em manutenção); e o grid de
+ * cards das salas com card "Adicionar" no final.
  * @param {HTMLElement} page
  */
 export function renderRooms(page) {
@@ -82,6 +85,12 @@ export function renderRooms(page) {
 
 // ── Atualiza o grid de salas ──────────────────────────────────
 
+/**
+ * Re-renderiza o grid de salas a partir do store.
+ * Normaliza registros legados (campos ausentes não quebram a renderização)
+ * e aplica filtros de texto (nome/bloco) e de status (chips).
+ * @param {HTMLElement} grid
+ */
 function refreshGrid(grid) {
   // Sanitiza salas vindas do storage: registros legados podem não ter todos
   // os campos, então normalizamos antes de filtrar/renderizar para não quebrar.
@@ -127,6 +136,14 @@ function refreshGrid(grid) {
 
 // ── Constrói um card de sala ──────────────────────────────────
 
+/**
+ * Constrói o card visual de uma sala (status, nome, tipo, capacidade,
+ * localização, recursos e ações Editar/Excluir). O clique no card abre
+ * os detalhes em modal.
+ * @param {object} r - sala
+ * @param {HTMLElement} grid - container para rerender após ação
+ * @returns {HTMLElement}
+ */
 function buildRoomCard(r, grid) {
   const info = roomStatusInfo(r.status);
 
@@ -176,6 +193,10 @@ function buildRoomCard(r, grid) {
   return card;
 }
 
+/**
+ * Abre um modal somente-leitura com os detalhes completos da sala.
+ * @param {object} room
+ */
 function showRoomDetailsOverlay(room) {
   const info = roomStatusInfo(room.status);
   const statusBadge = el(
@@ -254,6 +275,14 @@ function showRoomDetailsOverlay(room) {
 
 // ── Modal: Criar / Editar sala ────────────────────────────────
 
+/**
+ * Abre o modal de criação ou edição de sala. Quando `room` é `null`,
+ * funciona como criação; caso contrário, pré-popula os campos e altera o
+ * título/botão. Valida nome, capacidade e localização, monta o array de
+ * recursos a partir dos checkboxes e persiste com `saveRooms`.
+ * @param {object|null} room
+ * @param {HTMLElement} grid
+ */
 function openRoomModal(room, grid) {
   const isEdit = !!room;
 
@@ -413,6 +442,12 @@ function openRoomModal(room, grid) {
 
 // ── Deletar sala ──────────────────────────────────────────────
 
+/**
+ * Remove uma sala após confirmação do usuário, usando `filter` imutável.
+ * Atualiza o grid após o save.
+ * @param {string} id
+ * @param {HTMLElement} grid
+ */
 function deleteRoom(id, grid) {
   confirm('Deseja excluir esta sala permanentemente?', () => {
     // Array.filter para remoção imutável
@@ -424,6 +459,12 @@ function deleteRoom(id, grid) {
 
 // ── Helpers ───────────────────────────────────────────────────
 
+/**
+ * Encapsula um par `<label>` + input com o estilo padrão de formulário.
+ * @param {string} label
+ * @param {HTMLElement} input
+ * @returns {HTMLElement}
+ */
 function formField(label, input) {
   return el(
     'div',
@@ -433,6 +474,10 @@ function formField(label, input) {
   );
 }
 
+/**
+ * Cria o ícone SVG da lupa usado dentro do `.search-box`.
+ * @returns {SVGElement}
+ */
 function searchIcon() {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '13');

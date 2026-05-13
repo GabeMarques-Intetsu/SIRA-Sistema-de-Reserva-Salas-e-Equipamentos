@@ -39,8 +39,13 @@ import { tryRestoreSession, login, CURRENT_USER } from './data/store.js';
 // Usada pelo roteador para casar URLs absolutas com nomes de página.
 const BASE = import.meta.env.BASE_URL || '/';
 
-// Converte um pathname absoluto (com base) em nome de página puro.
-// Ex: '/SIRA/dashboard' → 'dashboard'; '/dashboard' → 'dashboard'; '/' → ''.
+/**
+ * Converte um pathname absoluto (incluindo a BASE do Vite) no nome puro
+ * da página usado pelo roteador.
+ * Ex: '/SIRA/dashboard' → 'dashboard'; '/dashboard' → 'dashboard'; '/' → ''.
+ * @param {string} pathname
+ * @returns {string}
+ */
 function pathToPage(pathname) {
   let p = pathname;
   if (BASE !== '/' && p.startsWith(BASE)) p = p.slice(BASE.length);
@@ -59,9 +64,12 @@ const PAGE_RENDERERS = {
   novaReserva: renderNovaReserva,
 };
 
-// ── T-08.3: ADICIONA DATA-LABEL NAS CÉLULAS PARA RESPONSIVIDADE MOBILE ──
-// [Apresentação] Esta função percorre as tabelas e injeta o texto do cabeçalho em cada célula.
-// Isso permite que o CSS transforme a tabela em "cards" no celular usando pseudo-elementos.
+/**
+ * Adiciona o atributo `data-label` (com o texto do cabeçalho) em cada `<td>`
+ * das tabelas dentro do container. O CSS responsivo usa esse atributo para
+ * transformar as tabelas em "cards" empilhados no mobile.
+ * @param {HTMLElement} container
+ */
 function addTableLabels(container) {
   container.querySelectorAll('table').forEach((table) => {
     const headers = [...table.querySelectorAll('thead th')].map((th) =>
@@ -75,9 +83,12 @@ function addTableLabels(container) {
   });
 }
 
-// T-03.2 — Tela de login inline em src/main.js: usa as classes do auth.css
-// (.auth-container, .auth-input, .auth-btn-primary, .auth-btn-secondary) para
-// que o tema claro/escuro e a paleta global sejam respeitados.
+/**
+ * Renderiza a tela de login inline (sem framework). Lê o e-mail digitado,
+ * dispara `login()` no store e recarrega a app em caso de sucesso. Também
+ * oferece o link para a tela de solicitação de cadastro.
+ * Usa as classes do `auth.css` para respeitar o tema claro/escuro.
+ */
 function renderLogin() {
   const app = document.getElementById('app');
   app.innerHTML = '';
@@ -132,10 +143,12 @@ function renderLogin() {
   app.appendChild(loginBox);
 }
 
-// T-04.1 — Tela de solicitação de cadastro de professor (renderSignup).
-// T-04.2 — Validação de nome + e-mail obrigatórios.
-// T-04.3 — Geração de ID su-<timestamp> e persistência em
-// localStorage["sira:signups"] com approved:false.
+/**
+ * Renderiza a tela de solicitação de cadastro de professor.
+ * Valida nome e e-mail obrigatórios, gera um ID `su-<timestamp>` e persiste
+ * em `localStorage["sira:signups"]` com `approved: false` — o cadastro fica
+ * pendente até o admin aprovar pela tela de Usuários.
+ */
 function renderSignup() {
   const app = document.getElementById('app');
   app.innerHTML = '';
@@ -210,6 +223,14 @@ function renderSignup() {
   app.appendChild(signupBox);
 }
 
+/**
+ * Inicializa a aplicação:
+ * 1. Tenta restaurar a sessão a partir do `localStorage`.
+ * 2. Se não houver usuário logado, mostra a tela de login.
+ * 3. Caso contrário, monta o shell (sidebar + main + overlay), instala o
+ *    roteador (history.pushState + popstate), expõe `window.navigatePage`
+ *    para redirecionamentos programáticos e renderiza a página inicial.
+ */
 function bootstrap() {
   tryRestoreSession();
 
@@ -245,7 +266,15 @@ function bootstrap() {
   });
   document.body.appendChild(overlay);
 
-  // [Apresentação] Função de Navegação Centralizada com Camada de Segurança e Mobile Labels
+  /**
+   * Navega para a página solicitada. Inclui:
+   * - RBAC: professor é redirecionado para `calendario` se tentar acessar
+   *   uma página exclusiva de admin.
+   * - History API: atualiza a URL via `pushState` (sem reload).
+   * - Renderização: limpa o container e invoca o renderer mapeado.
+   * - Acessibilidade: aplica `data-label` nas tabelas para layout mobile.
+   * @param {string} pageName
+   */
   function navigate(pageName) {
     if (!CURRENT_USER) return;
 
