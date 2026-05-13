@@ -179,6 +179,9 @@ export function generateId() {
   return `${timestamp}-${randomSuffix}`;
 }
 
+// Alias para compatibilidade
+export const genId = generateId;
+
 // Salva uma reserva. Se o usuário for admin, propaga a gravação para o usuário proprietário da reserva.
 // Caso contrário, salva na coleção do usuário logado.
 export function saveReservation(reservation) {
@@ -222,6 +225,9 @@ export function saveReservation(reservation) {
   return saveCollection('reservations', userReservations);
 }
 
+// Alias para compatibilidade
+export const saveReservations = saveReservation;
+
 // Salva uma aprovação. Se o usuário for admin, propaga a gravação para o usuário proprietário da aprovação.
 // Caso contrário, salva na coleção do usuário logado.
 export function saveApproval(approval) {
@@ -251,6 +257,9 @@ export function saveApproval(approval) {
 
   return savedApproval;
 }
+
+// Alias para compatibilidade
+export const saveApprovals = saveApproval;
 
 // Atualiza o status da reserva do solicitante vinculada à aprovação.
 function updateReservationStatusForApproval(approval) {
@@ -325,6 +334,9 @@ export function saveRoom(room) {
   return saveCollection('rooms', userRooms);
 }
 
+// Alias para compatibilidade
+export const saveRooms = saveRoom;
+
 // Salva uma notificação. Notificações são pessoais, então sempre na coleção do usuário logado.
 // Admin não propaga notificações para outros usuários.
 export function saveNotification(notification) {
@@ -341,6 +353,20 @@ export function saveNotification(notification) {
 
   return saveCollection('notifications', userNotifications);
 }
+
+// Retorna a lista global de usuários (consumida pelo módulo de Usuários).
+// Equivalente a getUsersGlobal, mas com o nome esperado pelos consumidores
+// (ver src/modules/users.js).
+export const getUsers = () => getUsersGlobal();
+
+// Grava a lista global de usuários (consumida pelo módulo de Usuários).
+// Persiste em localStorage['sira:users'] — esta é a fonte da verdade do
+// CRUD de usuários (US-22), mantida separada da partição por e-mail
+// usada pelas demais coleções.
+export const saveUsers = (list) => {
+  localStorage.setItem('sira:users', JSON.stringify(list));
+  return list;
+};
 
 // Global para seeds iniciais sem login.
 // Utilizado como fallback quando o app precisa da lista de usuários e não
