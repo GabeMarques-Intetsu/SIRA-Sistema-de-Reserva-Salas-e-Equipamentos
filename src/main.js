@@ -271,6 +271,10 @@ function bootstrap() {
     addTableLabels(pageContainer);
   }
 
+  // Expõe a navegação para módulos que disparam redirecionamento programático
+  // (reservations.js, novaReserva.js, calendar.js chamam window.navigatePage).
+  window.navigatePage = navigate;
+
   // ── T-08.1: INJETAR BOTÃO HAMBÚRGUER DINÂMICO ──
   const topbarObserver = new MutationObserver(() => {
     const topbar = pageContainer.querySelector('.topbar');

@@ -89,11 +89,19 @@ export function renderNovaReserva(page) {
 
   const btnSearch = btn('Buscar Salas', 'btn-primary', (e) => {
     e.preventDefault();
+    const isRecurring = recurSim.checked;
+    const selectedDays = dayButtons
+      .map((b, i) => (b.dataset.selected === 'true' ? i : -1))
+      .filter((i) => i >= 0);
+
     searchRooms(roomTypeSelect.value, resultsContainer, {
       dateStart: dateStart.value,
+      dateEnd: dateEnd.value,
       timeStart: timeStart.value,
       timeEnd: timeEnd.value,
       purpose: purposeInput.value,
+      isRecurring,
+      selectedDays,
     });
   });
 
@@ -187,6 +195,52 @@ function parseTimeStr(tStr) {
   return parseInt(h || 0) * 60 + parseInt(m || 0);
 }
 
+// Converte um dia JS (0=Dom..6=Sáb) para o índice usado pelos botões da UI
+// (0=Seg, 1=Ter, 2=Qua, 3=Qui, 4=Sex, 5=Sáb, 6=Dom).
+function jsDayToFormIdx(jsDay) {
+  return jsDay === 0 ? 6 : jsDay - 1;
+}
+
+// Parse "YYYY-MM-DD" como data local (evita problemas de fuso do new Date(iso)).
+function parseDateLocal(iso) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+function formatDateDdMm(date) {
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}`;
+}
+
+// Gera a lista de datas "dd/mm" cobertas por uma reserva.
+// Não-recorrente: apenas dateStart. Recorrente: todas as datas entre
+// dateStart e dateEnd cujo dia da semana esteja em selectedDays.
+function expandReservationDates(formData) {
+  const start = parseDateLocal(formData.dateStart);
+  if (!start) return [];
+
+  if (!formData.isRecurring) {
+    return [formatDateDdMm(start)];
+  }
+
+  const end = parseDateLocal(formData.dateEnd) || start;
+  if (end < start) return [];
+  if (!formData.selectedDays || formData.selectedDays.length === 0) return [];
+
+  const out = [];
+  const cur = new Date(start);
+  while (cur <= end) {
+    if (formData.selectedDays.includes(jsDayToFormIdx(cur.getDay()))) {
+      out.push(formatDateDdMm(cur));
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+
 function searchRooms(type, container, formData) {
   render(container, '');
   let rooms = getRooms();
@@ -195,8 +249,6 @@ function searchRooms(type, container, formData) {
   }
 
   if (formData.dateStart && formData.timeStart && formData.timeEnd) {
-    const [y, m, d] = formData.dateStart.split('-');
-    const formattedDate = `${d}/${m}`;
     const startMins = parseTimeStr(formData.timeStart);
     const endMins = parseTimeStr(formData.timeEnd);
 
@@ -205,24 +257,35 @@ function searchRooms(type, container, formData) {
       return;
     }
 
+    const targetDates = expandReservationDates(formData);
+    if (targetDates.length === 0) {
+      if (formData.isRecurring) {
+        toast(
+          'Selecione ao menos um dia da semana e uma data final válida.',
+          'error',
+        );
+      }
+      return;
+    }
+
     const allRes = getReservations();
     rooms = rooms.filter((room) => {
-      const roomRes = allRes.filter(
-        (res) =>
-          res.room === room.name &&
-          res.date === formattedDate &&
-          res.status !== 'rejected',
-      );
-      const hasOverlap = roomRes.some((res) => {
-        let tStr = res.time;
-        // handle both – (en-dash) and - (hyphen)
-        tStr = tStr.replace('–', '-');
-        const [t1, t2] = tStr.split('-');
-        const resStart = parseTimeStr(t1);
-        const resEnd = parseTimeStr(t2);
-        return startMins < resEnd && endMins > resStart;
+      // Para recorrência, basta UMA data sobrepor para considerar indisponível.
+      return !targetDates.some((date) => {
+        const roomRes = allRes.filter(
+          (res) =>
+            res.room === room.name &&
+            res.date === date &&
+            res.status !== 'rejected',
+        );
+        return roomRes.some((res) => {
+          const tStr = (res.time || '').replace('–', '-');
+          const [t1, t2] = tStr.split('-');
+          const resStart = parseTimeStr(t1);
+          const resEnd = parseTimeStr(t2);
+          return startMins < resEnd && endMins > resStart;
+        });
       });
-      return !hasOverlap;
     });
   }
 
@@ -370,8 +433,6 @@ function performReservation(room, formData) {
     return;
   }
 
-  const [y, m, d] = formData.dateStart.split('-');
-  const formattedDate = `${d}/${m}`;
   const startMins = parseTimeStr(formData.timeStart);
   const endMins = parseTimeStr(formData.timeEnd);
 
@@ -380,67 +441,89 @@ function performReservation(room, formData) {
     return;
   }
 
-  // Re-checa overlap antes de salvar (T-15.2)
-  const allRes = getReservations();
-  const roomRes = allRes.filter(
-    (res) =>
-      res.room === room.name &&
-      res.date === formattedDate &&
-      res.status !== 'rejected',
-  );
+  const targetDates = expandReservationDates(formData);
+  if (targetDates.length === 0) {
+    toast(
+      formData.isRecurring
+        ? 'Selecione ao menos um dia da semana e uma data final válida.'
+        : 'Data inválida.',
+      'error',
+    );
+    return;
+  }
 
-  const hasOverlap = roomRes.some((res) => {
-    let tStr = res.time.replace('–', '-');
-    const [t1, t2] = tStr.split('-');
-    const resStart = parseTimeStr(t1);
-    const resEnd = parseTimeStr(t2);
-    return startMins < resEnd && endMins > resStart;
+  // Re-checa overlap em TODAS as datas antes de salvar (T-15.2)
+  const allRes = getReservations();
+  const conflict = targetDates.find((date) => {
+    const roomRes = allRes.filter(
+      (res) =>
+        res.room === room.name &&
+        res.date === date &&
+        res.status !== 'rejected',
+    );
+    return roomRes.some((res) => {
+      const tStr = (res.time || '').replace('–', '-');
+      const [t1, t2] = tStr.split('-');
+      const resStart = parseTimeStr(t1);
+      const resEnd = parseTimeStr(t2);
+      return startMins < resEnd && endMins > resStart;
+    });
   });
 
-  if (hasOverlap) {
+  if (conflict) {
     toast(
-      'A sala já possui uma reserva nesse horário. Por favor atualize a busca.',
+      `Conflito em ${conflict}. A sala já está reservada nesse horário.`,
       'error',
     );
     return;
   }
 
   const formattedTime = `${formData.timeStart}–${formData.timeEnd}`;
-  const genResId = genId('res');
+  const recurrenceGroupId = formData.isRecurring ? genId('rec') : null;
 
-  // Salvar reserva pendente e aprovação de 1º nível
-  saveReservations([
-    ...getReservations(),
-    {
-      id: genResId,
+  // Constrói lote de reservas e aprovações (1 por data ocupada)
+  const newReservations = targetDates.map((date) => {
+    const id = genId('res');
+    return {
+      id,
       room: room.name,
-      date: formattedDate,
+      date,
       time: formattedTime,
       purpose: formData.purpose,
       requester: CURRENT_USER.name,
       requesterEmail: CURRENT_USER.email,
       status: 'pending',
       read: true,
-    },
-  ]);
+      ...(recurrenceGroupId ? { recurrenceGroupId } : {}),
+    };
+  });
 
-  saveApprovals([
-    ...getApprovals(),
-    {
-      id: 'ap_' + genResId,
-      room: room.name,
-      date: formattedDate,
-      time: formattedTime,
-      purpose: formData.purpose,
-      requester: CURRENT_USER.name,
-      requesterEmail: CURRENT_USER.email,
-      level: '1º nível',
-      read: false,
-    },
-  ]);
+  const newApprovals = newReservations.map((r) => ({
+    id: 'ap_' + r.id,
+    reservationId: r.id,
+    room: r.room,
+    date: r.date,
+    time: r.time,
+    purpose: r.purpose,
+    requester: r.requester,
+    requesterEmail: r.requesterEmail,
+    level: '1º nível',
+    read: false,
+    ...(recurrenceGroupId ? { recurrenceGroupId } : {}),
+  }));
+
+  saveReservations([...getReservations(), ...newReservations]);
+  saveApprovals([...getApprovals(), ...newApprovals]);
 
   // Toast e redirecionamento (T-15.3)
-  toast('Sucesso! Sua reserva foi enviada para aprovação.', 'success');
+  toast(
+    formData.isRecurring
+      ? `Sucesso! ${newReservations.length} reservas recorrentes enviadas para aprovação.`
+      : 'Sucesso! Sua reserva foi enviada para aprovação.',
+    'success',
+  );
   if (window.updateSidebarBadges) window.updateSidebarBadges();
-  window.navigatePage('reservas');
+  if (typeof window.navigatePage === 'function') {
+    window.navigatePage('reservas');
+  }
 }
