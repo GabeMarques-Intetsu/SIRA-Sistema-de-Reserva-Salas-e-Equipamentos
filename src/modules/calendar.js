@@ -327,7 +327,25 @@ function openQuickModal(recorrente, page) {
       return o;
     }),
   );
-  const dateInput = el('input', { type: 'date', class: 'form-input' });
+  // Input de data em formato brasileiro dd/mm/aaaa com máscara automática.
+  const dateInput = el('input', {
+    type: 'text',
+    class: 'form-input',
+    placeholder: 'dd/mm/aaaa',
+    inputmode: 'numeric',
+    autocomplete: 'off',
+    maxlength: '10',
+  });
+  dateInput.addEventListener('input', (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+    let out = digits;
+    if (digits.length > 4) {
+      out = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    } else if (digits.length > 2) {
+      out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    }
+    e.target.value = out;
+  });
   const timeSelect = el(
     'select',
     { class: 'form-input' },
@@ -384,18 +402,22 @@ function openQuickModal(recorrente, page) {
         onClick: () => {
           const room = rooms.find((r) => r.id === roomSelect.value);
           const purpose = purposeInput.value.trim();
-          const date = dateInput.value;
+          const date = dateInput.value.trim();
           if (!date || !purpose) {
             toastMsg('Preencha data e finalidade.', 'error');
             return;
           }
-          const [y, m, d] = date.split('-');
+          // Valida formato dd/mm/aaaa antes de salvar.
+          if (!/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+            toastMsg('Data inválida. Use dd/mm/aaaa.', 'error');
+            return;
+          }
           saveReservations([
             ...getReservations(),
             {
               id: genId('res'),
               room: room.name,
-              date: `${d}/${m}/${y}`,
+              date,
               time: timeSelect.value,
               purpose,
               requester: CURRENT_USER?.name ?? '',
