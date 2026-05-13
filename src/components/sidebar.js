@@ -6,7 +6,16 @@ import {
   getReservations,
   getApprovals,
   getNotifications,
+  CURRENT_USER,
 } from '../data/store.js';
+
+// Identifica reservas pertencentes ao usuário logado. Compara por e-mail
+// (identidade estável) e cai no nome para suportar registros legados.
+function isMine(r) {
+  if (!CURRENT_USER) return false;
+  if (r.requesterEmail) return r.requesterEmail === CURRENT_USER.email;
+  return r.requester === CURRENT_USER.name;
+}
 
 // Array declarativo: centraliza as páginas.
 const NAV_ITEMS = [
@@ -28,9 +37,7 @@ const NAV_ITEMS = [
     label: 'Minhas Reservas',
     icon: svgReserv,
     section: 'RESERVAS',
-    badge: () =>
-      getReservations().filter((r) => r.requester === 'Diego Pessoa' && !r.read)
-        .length,
+    badge: () => getReservations().filter((r) => isMine(r) && !r.read).length,
   },
   {
     page: 'aprovacoes',

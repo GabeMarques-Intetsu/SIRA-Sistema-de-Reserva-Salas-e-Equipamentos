@@ -11,8 +11,17 @@ import {
   getRooms,
   saveReservations,
   genId,
+  CURRENT_USER,
 } from '../data/store.js';
 import { openModal, closeModal, createModal } from '../components/modal.js';
+
+// Identifica reservas pertencentes ao usuário logado. Compara por e-mail
+// (identidade estável) e cai no nome para suportar registros legados.
+function isMine(r) {
+  if (!CURRENT_USER) return false;
+  if (r.requesterEmail) return r.requesterEmail === CURRENT_USER.email;
+  return r.requester === CURRENT_USER.name;
+}
 
 const DAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const HOURS = [
@@ -111,44 +120,28 @@ function buildFragment(page) {
   // ── USER STRIP ──
   const userStrip = el(
     'div',
-    { class: 'home-user-strip' },
+    { class: 'home-week-nav' },
+    btn('‹', 'btn btn-icon btn-sm', () => {
+      weekOffset--;
+      rebuildCalendar(page);
+    }),
     el(
-      'div',
-      { class: 'home-user-info' },
-      el('span', { class: 'home-user-name' }, 'Diego Pessoa'),
-      el(
-        'span',
-        { class: 'home-user-role' },
-        'Coordenador · Engenharia de Software',
-      ),
+      'span',
+      { class: 'home-month-label' },
+      monthYear.charAt(0).toUpperCase() + monthYear.slice(1),
     ),
-    el(
-      'div',
-      { class: 'home-week-nav' },
-      btn('‹', 'btn btn-icon btn-sm', () => {
-        weekOffset--;
-        rebuildCalendar(page);
-      }),
-      el(
-        'span',
-        { class: 'home-month-label' },
-        monthYear.charAt(0).toUpperCase() + monthYear.slice(1),
-      ),
-      btn('›', 'btn btn-icon btn-sm', () => {
-        weekOffset++;
-        rebuildCalendar(page);
-      }),
-      btn('Hoje', 'btn btn-sm', () => {
-        weekOffset = 0;
-        rebuildCalendar(page);
-      }),
-    ),
+    btn('›', 'btn btn-icon btn-sm', () => {
+      weekOffset++;
+      rebuildCalendar(page);
+    }),
+    btn('Hoje', 'btn btn-sm', () => {
+      weekOffset = 0;
+      rebuildCalendar(page);
+    }),
   );
 
   // ── SUAS RESERVAS (sidebar) ──
-  const myRes = reservations
-    .filter((r) => r.requester === 'Diego Pessoa')
-    .slice(0, 6);
+  const myRes = reservations.filter(isMine).slice(0, 6);
   const DOT = {
     approved: 'res-dot-green',
     pending: 'res-dot-amber',
@@ -359,7 +352,8 @@ function openQuickModal(recorrente, page) {
               date: `${d}/${m}/${y}`,
               time: timeSelect.value,
               purpose,
-              requester: 'Diego Pessoa',
+              requester: CURRENT_USER?.name ?? '',
+              requesterEmail: CURRENT_USER?.email ?? '',
               status: 'pending',
             },
           ]);
@@ -378,7 +372,7 @@ function openQuickModal(recorrente, page) {
 
 function openCancelModal(page) {
   const mine = getReservations().filter(
-    (r) => r.requester === 'Diego Pessoa' && r.status !== 'rejected',
+    (r) => isMine(r) && r.status !== 'rejected',
   );
   if (!mine.length) {
     toastMsg('Sem reservas ativas para cancelar.', 'error');

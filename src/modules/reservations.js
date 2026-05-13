@@ -14,16 +14,23 @@ import {
   saveReservations,
   getRooms,
   genId,
+  CURRENT_USER,
 } from '../data/store.js';
 import { openModal, closeModal, createModal } from '../components/modal.js';
 
 let searchQuery = '';
 let activeFilter = 'all';
 
+function isMine(r) {
+  if (!CURRENT_USER) return false;
+  if (r.requesterEmail) return r.requesterEmail === CURRENT_USER.email;
+  return r.requester === CURRENT_USER.name;
+}
+
 export function renderReservations(page) {
   let updated = false;
   const reservations = getReservations().map((r) => {
-    if (r.requester === 'Diego Pessoa' && !r.read) {
+    if (isMine(r) && !r.read) {
       updated = true;
       return { ...r, read: true };
     }
