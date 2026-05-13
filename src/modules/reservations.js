@@ -353,7 +353,7 @@ function formField(label, input) {
 
 function formatDate(iso) {
   const [y, m, d] = iso.split('-');
-  return `${d}/${m}`;
+  return `${d}/${m}/${y}`;
 }
 
 function searchIcon() {

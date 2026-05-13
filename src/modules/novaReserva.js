@@ -209,13 +209,15 @@ function parseDateLocal(iso) {
   return new Date(y, m - 1, d);
 }
 
+// Formata uma Date no padrão brasileiro dd/mm/aaaa.
 function formatDateDdMm(date) {
   const dd = String(date.getDate()).padStart(2, '0');
   const mm = String(date.getMonth() + 1).padStart(2, '0');
-  return `${dd}/${mm}`;
+  const yyyy = String(date.getFullYear());
+  return `${dd}/${mm}/${yyyy}`;
 }
 
-// Gera a lista de datas "dd/mm" cobertas por uma reserva.
+// Gera a lista de datas "dd/mm/aaaa" cobertas por uma reserva.
 // Não-recorrente: apenas dateStart. Recorrente: todas as datas entre
 // dateStart e dateEnd cujo dia da semana esteja em selectedDays.
 function expandReservationDates(formData) {

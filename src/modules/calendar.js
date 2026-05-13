@@ -45,9 +45,13 @@ function getWeekDates(offset = 0) {
 function reservationsToEvents(reservations, weekDates) {
   const COLOR_MAP = { approved: 'green', pending: 'amber', rejected: 'pink' };
   return reservations.flatMap((r) => {
-    const [dd, mm] = (r.date ?? '').split('/').map(Number);
+    // Aceita dd/mm/aaaa (formato atual) e dd/mm legado (sem ano).
+    const [dd, mm, yyyy] = (r.date ?? '').split('/').map(Number);
     const dayIdx = weekDates.findIndex(
-      (d) => d.getDate() === dd && d.getMonth() + 1 === mm,
+      (d) =>
+        d.getDate() === dd &&
+        d.getMonth() + 1 === mm &&
+        (yyyy ? d.getFullYear() === yyyy : true),
     );
     if (dayIdx === -1) return [];
     const match = (r.time ?? '').match(/(\d{1,2})[h:]/);
@@ -352,7 +356,7 @@ function openQuickModal(recorrente, page) {
             {
               id: genId('res'),
               room: room.name,
-              date: `${d}/${m}`,
+              date: `${d}/${m}/${y}`,
               time: timeSelect.value,
               purpose,
               requester: 'Diego Pessoa',
