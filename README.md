@@ -183,6 +183,19 @@ estilo Conventional Commits — `feat`, `fix`, `chore`, `ci`, `docs`,
 
 ---
 
+## 📄 Documentação da sprint 1
+
+| Documento                                                                                                                                | Descrição                                                                                                |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [`docs/reports/sprint-1/SIRA-Consolidado-Epics-Features-Membros.pdf`](docs/reports/sprint-1/SIRA-Consolidado-Epics-Features-Membros.pdf) | Backlog consolidado: 13 épicos → 24 features → 25 user stories, com responsabilidade por membro e status |
+| [`docs/reports/sprint-1/sequencia_us.pdf`](docs/reports/sprint-1/sequencia_us.pdf)                                                       | Ordem de implementação recomendada — quem desbloqueia quem                                               |
+| [`docs/reports/sprint-1/SIRA-Avaliacao-Criterios-Tecnicos.pdf`](docs/reports/sprint-1/SIRA-Avaliacao-Criterios-Tecnicos.pdf)             | Resposta aos 7 critérios avaliativos da disciplina PWEB2, com trechos de código                          |
+| [`docs/team-tasks/sprint-1/`](docs/team-tasks/sprint-1/)                                                                                 | PDFs individuais das tarefas de cada membro                                                              |
+
+**Release publicada**: [v1.0.0 — Sprint 1](https://github.com/GabeMarques-Intetsu/SIRA/releases/tag/v1.0.0) · App ao vivo em <https://gabemarques-intetsu.github.io/SIRA/>.
+
+---
+
 ## 🗺️ Roadmap da entrega
 
 O backlog do SIRA foi quebrado em **25 user stories** distribuídas em
