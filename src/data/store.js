@@ -17,6 +17,10 @@ const DB_PREFIX = 'sira_db';
 const buildCollectionKey = (email, collection) =>
   `${DB_PREFIX}/${email}/${collection}.json`;
 
+// Chave global para coleções compartilhadas entre todos os usuários
+// (salas são um recurso compartilhado: o admin cadastra e todos enxergam).
+const GLOBAL_ROOMS_KEY = `${DB_PREFIX}/_global/rooms.json`;
+
 // Estado global atual do usuário logado. Esse valor é atualizado no login
 // e usado como fallback em loadCollection/saveCollection quando o e-mail não
 // é passado explicitamente.
@@ -102,16 +106,30 @@ export function tryRestoreSession() {
   if (email) login(email);
 }
 
-// Retorna a lista de salas. Se o usuário for admin, consolida salas de todos os usuários.
-// Caso contrário, retorna apenas as salas do usuário logado.
+// Retorna a lista de salas. Salas são um recurso global: o admin as cadastra
+// uma única vez e todos os usuários (professores) precisam vê-las para reservar.
+// Lê de uma chave global, com migração automática a partir de coleções
+// pré-existentes do admin (compatibilidade com instalações antigas).
 export function getRooms() {
-  if (isAdmin()) {
-    // Admin vê todas as salas do sistema, consolidadas de todos os usuários.
-    return consolidateCollection('rooms');
+  migrateAdminRoomsToGlobalIfNeeded();
+  const raw = localStorage.getItem(GLOBAL_ROOMS_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
   }
+}
 
-  // Usuário comum vê apenas suas próprias salas.
-  return loadCollection('rooms');
+// Se a chave global ainda não existe mas o admin tem salas em sua coleção
+// privada (formato antigo), copia para o global de forma transparente.
+function migrateAdminRoomsToGlobalIfNeeded() {
+  if (localStorage.getItem(GLOBAL_ROOMS_KEY) !== null) return;
+
+  const adminRooms = loadCollection('rooms', 'admin@ifpb.edu.br');
+  if (Array.isArray(adminRooms) && adminRooms.length > 0) {
+    localStorage.setItem(GLOBAL_ROOMS_KEY, JSON.stringify(adminRooms));
+  }
 }
 
 // Retorna a lista de reservas. Se o usuário for admin, consolida reservas de todos os usuários.
@@ -322,26 +340,25 @@ export function resolveApproval(approval) {
   return saveApproval(approval);
 }
 
-// Salva uma sala. Salas são compartilhadas/global, então admin ou usuário salva na própria coleção.
-// (Nota: salas podem ser globais, mas isoladas por usuário para customização pessoal.)
+// Salva uma sala (upsert) na coleção global de salas.
 export function saveRoom(room) {
-  const userRooms = loadCollection('rooms');
-  const existingIndex = userRooms.findIndex((r) => r.id === room.id);
+  const rooms = getRooms();
+  const existingIndex = rooms.findIndex((r) => r.id === room.id);
 
   if (existingIndex >= 0) {
-    userRooms[existingIndex] = room;
+    rooms[existingIndex] = room;
   } else {
-    userRooms.push(room);
+    rooms.push(room);
   }
 
-  return saveCollection('rooms', userRooms);
+  return saveRooms(rooms);
 }
 
-// Alias para compatibilidade
-// Persiste a lista inteira de salas do usuário logado. Quando o módulo de
-// Salas adiciona/edita/remove uma sala, ele recalcula o array final e
-// chama saveRooms(list). Distinta de saveRoom(room) que aceita uma única.
-export const saveRooms = (list) => saveCollection('rooms', list);
+// Persiste a lista inteira de salas no storage global.
+export const saveRooms = (list) => {
+  localStorage.setItem(GLOBAL_ROOMS_KEY, JSON.stringify(list));
+  return list;
+};
 
 // Salva uma notificação. Notificações são pessoais, então sempre na coleção do usuário logado.
 // Admin não propaga notificações para outros usuários.
