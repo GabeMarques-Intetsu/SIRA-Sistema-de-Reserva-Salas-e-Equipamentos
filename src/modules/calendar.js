@@ -5,7 +5,7 @@
 // info do usuário + calendário semanal como painel principal
 // ─────────────────────────────────────────────────────────────
 
-import { el, render, btn } from '../utils/dom.js';
+import { el, render, btn, dateField } from '../utils/dom.js';
 import {
   getReservations,
   getRooms,
@@ -327,25 +327,9 @@ function openQuickModal(recorrente, page) {
       return o;
     }),
   );
-  // Input de data em formato brasileiro dd/mm/aaaa com máscara automática.
-  const dateInput = el('input', {
-    type: 'text',
-    class: 'form-input',
-    placeholder: 'dd/mm/aaaa',
-    inputmode: 'numeric',
-    autocomplete: 'off',
-    maxlength: '10',
-  });
-  dateInput.addEventListener('input', (e) => {
-    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
-    let out = digits;
-    if (digits.length > 4) {
-      out = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-    } else if (digits.length > 2) {
-      out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    }
-    e.target.value = out;
-  });
+  // Seletor de data em formato brasileiro dd/mm/aaaa, com máscara automática
+  // e botão de calendário que abre o picker nativo do navegador.
+  const dateInput = dateField();
   const timeSelect = el(
     'select',
     { class: 'form-input' },
