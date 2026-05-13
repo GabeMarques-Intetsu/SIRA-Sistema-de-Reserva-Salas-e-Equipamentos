@@ -354,6 +354,20 @@ export function saveNotification(notification) {
   return saveCollection('notifications', userNotifications);
 }
 
+// Retorna a lista global de usuários (consumida pelo módulo de Usuários).
+// Equivalente a getUsersGlobal, mas com o nome esperado pelos consumidores
+// (ver src/modules/users.js).
+export const getUsers = () => getUsersGlobal();
+
+// Grava a lista global de usuários (consumida pelo módulo de Usuários).
+// Persiste em localStorage['sira:users'] — esta é a fonte da verdade do
+// CRUD de usuários (US-22), mantida separada da partição por e-mail
+// usada pelas demais coleções.
+export const saveUsers = (list) => {
+  localStorage.setItem('sira:users', JSON.stringify(list));
+  return list;
+};
+
 // Global para seeds iniciais sem login.
 // Utilizado como fallback quando o app precisa da lista de usuários e não
 // existe um usuário autenticado ou a chave foi perdida.

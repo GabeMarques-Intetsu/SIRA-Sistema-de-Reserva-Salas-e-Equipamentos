@@ -4,11 +4,7 @@
 // Exibição e gerenciamento de alertas e interações
 // ─────────────────────────────────────────────────────────────
 
-import {
-  getNotifications,
-  saveNotification,
-  saveCollection,
-} from '../data/store.js';
+import { getNotifications, saveCollection } from '../data/store.js';
 import { el } from '../utils/dom.js';
 
 /**

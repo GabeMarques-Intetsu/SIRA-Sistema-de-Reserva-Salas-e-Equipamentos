@@ -3,7 +3,7 @@ import './style.css';
 import './home.css';
 import './auth.css';
 
-import { el, render } from './utils/dom.js';
+import { el } from './utils/dom.js';
 import { createSidebar } from './components/sidebar.js';
 import { initModalListeners } from './components/modal.js';
 
@@ -47,38 +47,139 @@ function addTableLabels(container) {
   });
 }
 
-// ── Funções de Autenticação ──
+// T-03.2 — Tela de login inline em src/main.js: usa as classes do auth.css
+// (.auth-container, .auth-input, .auth-btn-primary, .auth-btn-secondary) para
+// que o tema claro/escuro e a paleta global sejam respeitados.
 function renderLogin() {
   const app = document.getElementById('app');
   app.innerHTML = '';
   const loginBox = el(
     'div',
-    {
-      class: 'login-container',
-      style: { padding: '40px', textAlign: 'center' },
-    },
-    el('h1', {}, 'SIRA - Login'),
-    el('input', { id: 'emailInput', placeholder: 'Email' }),
+    { class: 'auth-container' },
+    el('h1', { class: 'auth-heading' }, 'SIRA'),
+    el(
+      'p',
+      { class: 'auth-description' },
+      'Sistema de Reserva de Salas — entre com seu e-mail institucional.',
+    ),
+    el('input', {
+      id: 'emailInput',
+      class: 'auth-input',
+      placeholder: 'email@ifpb.edu.br',
+      type: 'email',
+      autocomplete: 'username',
+      onKeydown: (ev) => {
+        if (ev.key === 'Enter') document.getElementById('loginBtn')?.click();
+      },
+    }),
     el(
       'button',
       {
+        id: 'loginBtn',
+        class: 'auth-btn auth-btn-primary',
         onClick: () => {
-          const email = document.getElementById('emailInput').value;
+          const email = document
+            .getElementById('emailInput')
+            .value.trim()
+            .toLowerCase();
+          if (!email) {
+            alert('Informe um e-mail válido.');
+            return;
+          }
           if (login(email)) location.reload();
           else alert('Usuário não encontrado.');
         },
       },
       'Entrar',
     ),
-    el('button', { onClick: () => renderSignup() }, 'Cadastrar-se'),
+    el(
+      'button',
+      {
+        class: 'auth-btn auth-btn-secondary',
+        onClick: () => renderSignup(),
+      },
+      'Solicitar cadastro',
+    ),
   );
   app.appendChild(loginBox);
 }
 
+// T-04.1 — Tela de solicitação de cadastro de professor (renderSignup).
+// T-04.2 — Validação de nome + e-mail obrigatórios.
+// T-04.3 — Geração de ID su-<timestamp> e persistência em
+// localStorage["sira:signups"] com approved:false.
 function renderSignup() {
   const app = document.getElementById('app');
-  app.innerHTML =
-    '<h1>Tela de Cadastro</h1><button onclick="location.reload()">Voltar</button>';
+  app.innerHTML = '';
+  const signupBox = el(
+    'div',
+    { class: 'auth-container' },
+    el('h1', { class: 'auth-heading' }, 'Solicitar cadastro'),
+    el(
+      'p',
+      { class: 'auth-description' },
+      'Sua solicitação ficará pendente até a aprovação do administrador.',
+    ),
+    el('input', {
+      id: 'signupName',
+      class: 'auth-input',
+      placeholder: 'Nome completo',
+      autocomplete: 'name',
+    }),
+    el('input', {
+      id: 'signupEmail',
+      class: 'auth-input',
+      placeholder: 'email@ifpb.edu.br',
+      type: 'email',
+      autocomplete: 'email',
+    }),
+    el(
+      'select',
+      { id: 'signupRole', class: 'auth-select' },
+      el('option', { value: 'professor' }, 'Professor'),
+    ),
+    el(
+      'button',
+      {
+        class: 'auth-btn auth-btn-primary',
+        onClick: () => {
+          const name = document.getElementById('signupName').value.trim();
+          const email = document
+            .getElementById('signupEmail')
+            .value.trim()
+            .toLowerCase();
+          const role = document.getElementById('signupRole').value;
+          if (!name || !email) {
+            alert('Preencha nome e e-mail.');
+            return;
+          }
+          const signups = JSON.parse(
+            localStorage.getItem('sira:signups') || '[]',
+          );
+          signups.push({
+            id: `su-${Date.now()}`,
+            name,
+            email,
+            role,
+            approved: false,
+          });
+          localStorage.setItem('sira:signups', JSON.stringify(signups));
+          alert('Solicitação enviada. Aguarde aprovação do administrador.');
+          renderLogin();
+        },
+      },
+      'Enviar solicitação',
+    ),
+    el(
+      'button',
+      {
+        class: 'auth-btn auth-btn-back',
+        onClick: () => renderLogin(),
+      },
+      '← Voltar ao login',
+    ),
+  );
+  app.appendChild(signupBox);
 }
 
 function bootstrap() {
