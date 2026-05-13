@@ -25,8 +25,8 @@ export function renderNovaReserva(page) {
     el('span', { class: 'topbar-title' }, 'Nova Reserva'),
   );
 
-  const dateStart = el('input', { type: 'date', class: 'form-input' });
-  const dateEnd = el('input', { type: 'date', class: 'form-input' });
+  const dateStart = makeDateInput();
+  const dateEnd = makeDateInput();
 
   const timeStart = el('input', { type: 'time', class: 'form-input' });
   const timeEnd = el('input', { type: 'time', class: 'form-input' });
@@ -227,17 +227,49 @@ function jsDayToFormIdx(jsDay) {
 }
 
 /**
- * Faz parse de uma string `"YYYY-MM-DD"` (formato de `<input type="date">`)
- * para uma `Date` no fuso local — evita o bug clássico em que
- * `new Date("2026-05-13")` é interpretado como UTC e exibe o dia anterior.
- * @param {string} iso
+ * Faz parse de uma string de data no formato brasileiro `dd/mm/aaaa` (ou
+ * `dd/mm/aa`, sendo `aa` interpretado como `20aa`) para uma `Date` no fuso
+ * local — evita o bug clássico em que `new Date(iso)` é interpretado como
+ * UTC e exibe o dia anterior.
+ * @param {string} str
  * @returns {Date|null}
  */
-function parseDateLocal(iso) {
-  if (!iso) return null;
-  const [y, m, d] = iso.split('-').map(Number);
-  if (!y || !m || !d) return null;
-  return new Date(y, m - 1, d);
+function parseDateLocal(str) {
+  if (!str) return null;
+  const trimmed = str.trim();
+  if (!trimmed) return null;
+  const [d, m, y] = trimmed.split('/').map(Number);
+  if (!d || !m || !y) return null;
+  const year = y < 100 ? 2000 + y : y;
+  return new Date(year, m - 1, d);
+}
+
+/**
+ * Cria um `<input type="text">` com máscara automática para datas no
+ * formato dd/mm/aaaa. Conforme o usuário digita números, insere as barras
+ * (`/`) automaticamente e limita a 10 caracteres.
+ * @returns {HTMLInputElement}
+ */
+function makeDateInput() {
+  const input = el('input', {
+    type: 'text',
+    class: 'form-input',
+    placeholder: 'dd/mm/aaaa',
+    inputmode: 'numeric',
+    autocomplete: 'off',
+    maxlength: '10',
+  });
+  input.addEventListener('input', (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+    let out = digits;
+    if (digits.length > 4) {
+      out = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    } else if (digits.length > 2) {
+      out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    }
+    e.target.value = out;
+  });
+  return input;
 }
 
 /**
