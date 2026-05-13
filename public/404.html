@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIRA — Redirecionando…</title>
+    <script>
+      // ── SPA routing fallback para GitHub Pages ──
+      // O GitHub Pages serve estaticamente: quando o usuário dá F5 em
+      // /SIRA/dashboard, o servidor procura /SIRA/dashboard/index.html
+      // e cai aqui (404). Salvamos o path no sessionStorage e redirecionamos
+      // para o index.html (na raiz do app), que vai restaurar a rota antes
+      // de o roteador SPA tomar o controle.
+      (function () {
+        var path =
+          window.location.pathname +
+          window.location.search +
+          window.location.hash;
+        sessionStorage.setItem('sira:spa-redirect', path);
+        // Volta pra raiz do app: /SIRA/  (em dev é /)
+        var base = '/SIRA/';
+        if (
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1'
+        ) {
+          base = '/';
+        }
+        window.location.replace(window.location.origin + base);
+      })();
+    </script>
+  </head>
+  <body>
+    <noscript>Redirecionando para a página inicial…</noscript>
+  </body>
+</html>

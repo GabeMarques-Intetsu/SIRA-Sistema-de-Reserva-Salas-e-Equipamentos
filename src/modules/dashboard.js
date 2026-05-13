@@ -5,13 +5,13 @@
 
 import { getRooms, getReservations } from '../data/store.js';
 import { computeStats } from '../utils/fp.js';
-import { el } from '../utils/dom.js';
+import { el, render } from '../utils/dom.js';
 
 /**
- * Renderiza o dashboard do administrador.
- * @returns {HTMLElement}
+ * Renderiza o dashboard do administrador no container recebido.
+ * @param {HTMLElement} page  container alvo (vem do roteador em main.js)
  */
-export function renderDashboard() {
+export function renderDashboard(page) {
   // Passo 2: Resgatar os dados
   const rooms = getRooms();
   const reservations = getReservations();
@@ -60,8 +60,8 @@ export function renderDashboard() {
     'Gráfico de Ocupação (Integração Futura HIFPB)',
   );
 
-  // Agrupar tudo
-  return el(
+  // Monta a árvore e insere no container do roteador
+  const root = el(
     'div',
     { class: 'dashboard' },
     el('h2', {}, 'Dashboard do Administrador'),
@@ -83,4 +83,6 @@ export function renderDashboard() {
       ),
     ),
   );
+
+  render(page, root);
 }

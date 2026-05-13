@@ -225,8 +225,10 @@ export function saveReservation(reservation) {
   return saveCollection('reservations', userReservations);
 }
 
-// Alias para compatibilidade
-export const saveReservations = saveReservation;
+// Persiste a lista inteira de reservas do usuário logado. Usada pelos
+// módulos que reescrevem o array de uma vez (rooms/reservations/calendar).
+// Distinta de saveReservation(), que aceita uma única reserva.
+export const saveReservations = (list) => saveCollection('reservations', list);
 
 // Salva uma aprovação. Se o usuário for admin, propaga a gravação para o usuário proprietário da aprovação.
 // Caso contrário, salva na coleção do usuário logado.
@@ -258,8 +260,9 @@ export function saveApproval(approval) {
   return savedApproval;
 }
 
-// Alias para compatibilidade
-export const saveApprovals = saveApproval;
+// Persiste a lista inteira de aprovações do usuário logado. Distinta de
+// saveApproval(), que aceita uma única aprovação.
+export const saveApprovals = (list) => saveCollection('approvals', list);
 
 // Atualiza o status da reserva do solicitante vinculada à aprovação.
 function updateReservationStatusForApproval(approval) {
@@ -335,7 +338,10 @@ export function saveRoom(room) {
 }
 
 // Alias para compatibilidade
-export const saveRooms = saveRoom;
+// Persiste a lista inteira de salas do usuário logado. Quando o módulo de
+// Salas adiciona/edita/remove uma sala, ele recalcula o array final e
+// chama saveRooms(list). Distinta de saveRoom(room) que aceita uma única.
+export const saveRooms = (list) => saveCollection('rooms', list);
 
 // Salva uma notificação. Notificações são pessoais, então sempre na coleção do usuário logado.
 // Admin não propaga notificações para outros usuários.

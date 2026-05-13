@@ -19,6 +19,34 @@ import { renderNovaReserva } from './modules/novaReserva.js';
 
 import { tryRestoreSession, login, CURRENT_USER } from './data/store.js';
 
+// ── SPA routing fallback (GitHub Pages 404 → index.html) ──
+// public/404.html grava o path original em sessionStorage e redireciona
+// pra raiz do app. Aqui restauramos a URL antes do roteador rodar.
+(function restoreSpaRedirect() {
+  const saved = sessionStorage.getItem('sira:spa-redirect');
+  if (!saved) return;
+  sessionStorage.removeItem('sira:spa-redirect');
+  // Só restaura se o path salvo for diferente da URL atual (evita loop)
+  if (
+    saved !==
+    window.location.pathname + window.location.search + window.location.hash
+  ) {
+    window.history.replaceState(null, '', saved);
+  }
+})();
+
+// Base configurada no vite.config.js — em dev é '/', em produção '/SIRA/'.
+// Usada pelo roteador para casar URLs absolutas com nomes de página.
+const BASE = import.meta.env.BASE_URL || '/';
+
+// Converte um pathname absoluto (com base) em nome de página puro.
+// Ex: '/SIRA/dashboard' → 'dashboard'; '/dashboard' → 'dashboard'; '/' → ''.
+function pathToPage(pathname) {
+  let p = pathname;
+  if (BASE !== '/' && p.startsWith(BASE)) p = p.slice(BASE.length);
+  return p.replace(/^\/+|\/+$/g, '');
+}
+
 // [Apresentação] Roteador Funcional (Dispatcher): Mapeamos strings para funções de renderização.
 const PAGE_RENDERERS = {
   dashboard: renderDashboard,
@@ -231,8 +259,9 @@ function bootstrap() {
     const renderer = PAGE_RENDERERS[pageName];
     if (!renderer) return;
 
-    if (window.location.pathname !== `/${pageName}`) {
-      window.history.pushState({}, '', `/${pageName}`);
+    const targetPath = `${BASE}${pageName}`.replace(/\/{2,}/g, '/');
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({}, '', targetPath);
     }
 
     pageContainer.innerHTML = '';
@@ -274,12 +303,12 @@ function bootstrap() {
   initModalListeners();
 
   window.addEventListener('popstate', () => {
-    let path = window.location.pathname.replace(/^\//, '');
+    let path = pathToPage(window.location.pathname);
     if (!path || !PAGE_RENDERERS[path]) path = 'calendario';
     navigate(path);
   });
 
-  let initialPage = window.location.pathname.replace(/^\//, '');
+  let initialPage = pathToPage(window.location.pathname);
   if (!PAGE_RENDERERS[initialPage]) initialPage = 'calendario';
 
   navigate(initialPage);

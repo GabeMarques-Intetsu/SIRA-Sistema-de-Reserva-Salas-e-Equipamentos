@@ -5,28 +5,32 @@
 // ─────────────────────────────────────────────────────────────
 
 import { getNotifications, saveCollection } from '../data/store.js';
-import { el } from '../utils/dom.js';
+import { el, render } from '../utils/dom.js';
 
 /**
- * Renderiza a tela de notificações do usuário.
- * @returns {HTMLElement}
+ * Renderiza a tela de notificações do usuário no container recebido.
+ * @param {HTMLElement} page  container alvo (vem do roteador em main.js)
  */
-export function renderNotifications() {
+export function renderNotifications(page) {
   // Passo 1: Resgatar notificações
-  let notifications = getNotifications();
+  const notifications = getNotifications();
 
-  // Passo 2: Verificar se está vazia
+  // Passo 2: Lista vazia → mensagem amigável
   if (notifications.length === 0) {
-    return el(
-      'div',
-      { class: 'notifications-container' },
-      el('h2', {}, 'Notificações'),
+    render(
+      page,
       el(
-        'p',
-        { style: { textAlign: 'center', color: 'var(--text-tertiary)' } },
-        'Você não tem notificações',
+        'div',
+        { class: 'notifications-container' },
+        el('h2', {}, 'Notificações'),
+        el(
+          'p',
+          { style: { textAlign: 'center', color: 'var(--text-tertiary)' } },
+          'Você não tem notificações',
+        ),
       ),
     );
+    return;
   }
 
   // Ordenar por data (mais novas no topo)
@@ -34,16 +38,19 @@ export function renderNotifications() {
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   );
 
-  // Passo 2: Renderizar a lista com .map()
+  // Passo 3: Renderizar a lista com .map() (programação funcional)
   const notificationItems = sortedNotifications.map((notification) =>
     createNotificationItem(notification),
   );
 
-  return el(
-    'div',
-    { class: 'notifications-container' },
-    el('h2', {}, 'Notificações'),
-    el('div', { class: 'notif-list' }, ...notificationItems),
+  render(
+    page,
+    el(
+      'div',
+      { class: 'notifications-container' },
+      el('h2', {}, 'Notificações'),
+      el('div', { class: 'notif-list' }, ...notificationItems),
+    ),
   );
 }
 
