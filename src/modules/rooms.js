@@ -83,7 +83,19 @@ export function renderRooms(page) {
 // ── Atualiza o grid de salas ──────────────────────────────────
 
 function refreshGrid(grid) {
-  const all = getRooms();
+  // Sanitiza salas vindas do storage: registros legados podem não ter todos
+  // os campos, então normalizamos antes de filtrar/renderizar para não quebrar.
+  const all = getRooms()
+    .filter((r) => r && typeof r === 'object')
+    .map((r) => ({
+      ...r,
+      name: r.name ?? 'Sem nome',
+      type: r.type ?? '—',
+      capacity: r.capacity ?? '—',
+      block: r.block ?? '—',
+      status: r.status ?? 'free',
+      resources: Array.isArray(r.resources) ? r.resources : [],
+    }));
 
   // Encadeamento funcional: filter + filter via helper
   const filtered = filterRoomsByStatus(
@@ -145,7 +157,7 @@ function buildRoomCard(r, grid) {
     el(
       'div',
       { class: 'room-meta', style: { marginTop: '4px' } },
-      r.resources.join(' · '),
+      (r.resources || []).join(' · '),
     ),
     el(
       'div',
